@@ -1,0 +1,22 @@
+{
+    "name": "vitodtagliente/pure-orm",
+    "description": "The Pure ORM Component",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Vito Domenico Tagliente",
+            "email": "vitodomenicotagliente@gmail.com"
+        }
+    ],
+    "require": {},
+    "autoload": {
+        "psr-4": {
+            "Pure\\ORM\\": ""
+        }
+    },
+    "config": {
+        "sort-packages": true
+    },
+    "minimum-stability": "dev"
+}
