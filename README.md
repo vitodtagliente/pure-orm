@@ -83,11 +83,8 @@ The Schema utility can be used to create, delete and check the existence of a na
     $result = Pure\ORM\Schema::create($query);
     ```
     where $query can be
-        * string
-            ```php
-            $query = "CREATE TABLE users ....";
-            ```
-        * SchemaBuilder instance
+        1. string like "CREATE TABLE ..."
+        2. SchemaBuilder instance
 
 # Schema Builder
 
@@ -105,4 +102,21 @@ The SchemaBuilder class let to define and create tables by code
     ```php
     $schema->add('id', 'INT');
     $schema->add('name', 'VARCHAR(30)', 'NOT NULL');
+    $schema->add('username', 'VARCHAR(30)', 'NOT NULL');
+    $schema->unique('username'); // username must be unique
+    $schema->increments('id'); // auto_increment
+    $schema->primary('id'); // set the primary key
+    $schema->add('password', 'VARCHAR(30)', 'NOT NULL');
     ```
+    In this way the table schema can be defined using code.
+    Each SchemaBuilder instance produces a query:
+    ```php
+    $query = $schema->query();
+    Pure\ORM\Schema::create( $query ); // create the table
+    ```
+    The $query of this example will be this:
+    ```sql
+    CREATE TABLE users ( id INT  not null auto_increment , name VARCHAR(30) NOT NULL, username VARCHAR(30) NOT NULL, password VARCHAR(30) NOT NULL, CONSTRAINT pk_id PRIMARY KEY ( id ), CONSTRAINT uc_username UNIQUE ( username ) )
+    ```
+
+# ORM, How To define Models:
