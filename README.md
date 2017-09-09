@@ -82,11 +82,27 @@ The Schema utility can be used to create, delete and check the existence of a na
     ```php
     $result = Pure\ORM\Schema::create($query);
     ```
-    where $query can be:
-        * string:
+    where $query can be
+        * string
             ```php
             $query = "CREATE TABLE users ....";
             ```
         * SchemaBuilder instance
 
 # Schema Builder
+
+The SchemaBuilder class let to define and create tables by code
+
+1. Instantiate the SchemaBuilder and define the table's name
+    ```php
+    $schema = new Pure\ORM\SchemaBuilder('users');
+    ```
+2. Add columns
+    ```php
+    $schema->add($name, $type, $expression = null)
+    ```
+    Let me show an example
+    ```php
+    $schema->add('id', 'INT');
+    $schema->add('name', 'VARCHAR(30)', 'NOT NULL');
+    ```
