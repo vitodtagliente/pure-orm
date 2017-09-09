@@ -16,7 +16,7 @@ Object-Relational Mapping (ORM)
     ```php
     Pure/ORM/Database::bind("mysql", "hostname", "database", "user", "password", array(PDO_attributes));
     ```
-3. Before the step 1 or 2, the database instance can be globally accessed by the singleton pattern:
+3. After the step 1 or 2, the database instance can be globally accessed by the singleton pattern:
     ```php
     $db = Pure\ORM\Database::main();
     ```
@@ -34,25 +34,59 @@ Object-Relational Mapping (ORM)
     $db->close();
     ```    
 
-# How To manage queries at low level:
+## How To execute queries:
 
-1. Getting a row
+1. Getting a row:
     ```php
-    $db->fetch("SELECT email, username FROM users WHERE username =?", array("Mario"));
+    $data = $db->fetch("SELECT email, username FROM users WHERE username = ?", array("Mario"));
     ```
     Or
     ```php
-    $db->select("users", array( 'email', 'username' ), "username = Mario" );
+    $data = $db->select("users", array( 'email', 'username' ), "username = Mario" );
     ```
-2. Getting multiple rows
+2. Getting multiple rows:
     ```php
-    $db->fetchAll("SELECT id, username FROM users");
+    $data = $db->fetchAll("SELECT id, username FROM users");
     ```
-3. Inserting a row
+    Or
     ```php
-    $db->insert("users", array( "name" => "Mario", "email" => "mario.rossi@email.com"));
+    $data = $db->selectAll("users", array( 'email', 'username' ), $condition);
     ```
-4. Updating existing row
+3. Insert a row:
     ```php
-    $db->update("users", "id = 1", array( "name" => "Roberto" ) );
+    $result = $db->insert("users", array( "name" => "Mario", "email" => "mario.rossi@email.com"));
     ```
+    $result will be true or false
+4. Update existing row:
+    ```php
+    $result = $db->update("users", "id = 1", array( "name" => "Roberto" ) );
+    ```
+5. Remove rows:
+    ```php
+    $result = $db->delete("users", "id = 1");
+    ```
+
+# Schema Management
+
+The Schema utility can be used to create, delete and check the existence of a named table into the database.
+
+1. Check if a table exists:
+    ```php
+    $result = Pure\ORM\Schema::exists('users');
+    ```
+2. Delete a table:
+    ```php
+    $result = Pure\ORM\Schema::drop('users');
+    ```
+3. Create a table:
+    ```php
+    $result = Pure\ORM\Schema::create($query);
+    ```
+    where $query can be:
+        - string:
+            ```php
+            $query = "CREATE TABLE users ....";
+            ```
+        - SchemaBuilder instance
+
+# Schema Builder
