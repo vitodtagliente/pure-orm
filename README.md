@@ -119,4 +119,48 @@ The SchemaBuilder class let to define and create tables by code
     CREATE TABLE users ( id INT  not null auto_increment , name VARCHAR(30) NOT NULL, username VARCHAR(30) NOT NULL, password VARCHAR(30) NOT NULL, CONSTRAINT pk_id PRIMARY KEY ( id ), CONSTRAINT uc_username UNIQUE ( username ) )
     ```
 
-# ORM, How To define Models:
+# How To define Models
+
+The Model class let to map Schema and data to objects.
+First of all, a model class declaration is required.
+Inside the class constructor it is necessary to define and register all the required fields.
+```php
+    class User extends Pure\ORM\Model
+    {
+        function _constructor(){
+
+            $this->col('id');
+            $this->col('name');
+            $this->col('username');
+            $this->col('password');
+
+            $this->id('id'); // specify the id field
+        }
+    }
+```
+Once a model is defined, it is easy to map data and queries with objects.
+
+1. Instantiate the model:
+    ```php
+    $model = new User();
+    $model->name = 'Mario';
+    $model->password = '****';
+    $model->username = 'mariorossi98';
+
+    $model->save();
+    ```
+    The save method can be used to insert or update sql data.
+2. Find models:
+    ```php
+    $model = User::find('id = 1');
+    ```
+3. Delete data:
+    ```php
+    $model = User::find('id = 1');
+    // ....
+    $model->erase();
+    ```
+4. Retrieve multiple models:
+    ```php
+    $models = User::all($condition = null);
+    ```
