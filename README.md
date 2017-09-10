@@ -6,7 +6,7 @@ Object-Relational Mapping (ORM)
 
 1. Instantiate the Database connection giving database settings
     ```php
-    $db = new Pure/ORM/Database("mysql", "hostname", "database", "user", "password", array(PDO_attributes));
+    $db = new Pure\ORM\Database("mysql", "hostname", "database", "user", "password", array(PDO_attributes));
     ```
     or bind a ready PDO instance
     ```php
@@ -14,7 +14,7 @@ Object-Relational Mapping (ORM)
     ```
 2. It is also possible to define the database settings and apply for connection at the first time in which a query is called. This means that no database connection time is lost in pages in which there are no data queries.
     ```php
-    Pure/ORM/Database::bind("mysql", "hostname", "database", "user", "password", array(PDO_attributes));
+    Pure\ORM\Database::bind("mysql", "hostname", "database", "user", "password", array(PDO_attributes));
     ```
 3. After the step 1 or 2, the database instance can be globally accessed by the singleton pattern:
     ```php
