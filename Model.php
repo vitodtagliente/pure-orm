@@ -5,9 +5,12 @@ namespace Pure\ORM;
 abstract class Model
 {
     // ritorna il nome della tabella
+    // che corrisponde al nome della classe del modello in minuscolo
+    // resa al plurale
+    // example: User -> users
     public static function table(){
         $path = explode('\\', get_called_class());
-        return array_pop($path);
+        return array_pop($path) . 's';
     }
 
     private $fields = [];
@@ -36,7 +39,7 @@ abstract class Model
         return $value;
     }
 
-    protected function col( $name, $default = null){
+    protected function field( $name, $default = null){
         $this->fields[$name] = $default;
     }
 
