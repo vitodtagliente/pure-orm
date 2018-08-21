@@ -117,12 +117,15 @@ abstract class Model
         $models = [];
 
         $result = Database::main()->selectAll( self::table(), null, $where );
-        foreach ($result as $r)
+        if(!empty($result))
         {
-            $model = new $classname();
-            foreach( $r as $key => $value )
-                $model->$key = $value;
-            array_push( $models, $model );
+            foreach ($result as $r)
+            {
+                $model = new $classname();
+                foreach( $r as $key => $value )
+                    $model->$key = $value;
+                array_push( $models, $model );
+            }
         }
         return $models;
     }

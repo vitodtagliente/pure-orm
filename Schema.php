@@ -22,6 +22,10 @@ class Schema {
 		return Database::main()->execute( "SELECT 1 FROM $table LIMIT 1" );
 	}
 
+	public static function clear($table){
+		return Database::main()->execute( "DELETE FROM $table" );
+	}
+
 	private function __destruct(){}
 }
 
