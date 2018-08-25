@@ -129,10 +129,10 @@ Inside the class constructor it is necessary to define and register all the requ
     {
         function _constructor(){
 
-            $this->col('id');
-            $this->col('name');
-            $this->col('username');
-            $this->col('password');
+            $this->field('id');
+            $this->field('name');
+            $this->field('username');
+            $this->field('password');
 
             $this->id('id'); // specify the id field
         }
@@ -163,4 +163,8 @@ Once a model is defined, it is easy to map data and queries with objects.
 4. Retrieve multiple models:
     ```php
     $models = User::all($condition = null);
+    ```
+5. Get the table name, which is automatically generated:
+    ```php
+    $table_name = User::table();
     ```
