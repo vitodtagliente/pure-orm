@@ -24,13 +24,22 @@
 namespace Pure\ORM;
 
 class Database {
-    private $context = null, $connected = false;
-    public $debug = false;
+    // interfaccia di collegamento al db
+    private $context = null;
+    // speficia lo stato di connessione al database
+    private $connected = false;
+    // se attivo, abilita l'output degli errori
+    private $debug = false;
+
+    // memorizza l'ultimo pdo bindato
     private static $pdo_bind = null;
 
-    private static $instance, $config;
+    // singleton pattenr
+    private static $instance;
+    // configurazione di collegamento al database
+    private static $config;
 
-    function __construct( $type, $host, $dbname, $username, $password, $options = array() ){
+    function __construct($type, $host, $dbname, $username, $password, $options = array()){
         $this->connected = true;
 
         if(isset(self::$pdo_bind))
@@ -43,16 +52,16 @@ class Database {
             $this->context->setAttribute( \PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION );
             $this->context->setAttribute( \PDO::ATTR_DEFAULT_FETCH_MODE, \PDO::FETCH_ASSOC );
         }
-        catch( \PDOException $e ) {
-            if( $this->debug )
-                throw new Exception( $e->getMessage() );
+        catch(\PDOException $e) {
+            if($this->debug)
+                throw new Exception($e->getMessage());
             $this->connected = false;
         }
     }
 
     // <------------- STATIC FUNCTIONS
 
-    public static function prepare( $type, $host, $dbname, $username, $password, $options = array() ){
+    public static function prepare($type, $host, $dbname, $username, $password, $options = array()){
     	self::$config = array(
             'type' => $type,
             'host' => $host,
@@ -64,7 +73,7 @@ class Database {
     }
 
     public static function bind($pdo){
-        if( !isset($pdo) )
+        if(!isset($pdo))
             return null;
         self::$pdo_bind = $pdo;
 
@@ -75,13 +84,13 @@ class Database {
         return $db;
     }
 
-    public static function change( $db ){
-        if( is_object( $db ) )
+    public static function change($db){
+        if(is_object($db))
             self::$instance = $db;
     }
 
     public static function main(){
-        if( !isset( self::$instance ) && is_array( self::$config ) ){
+        if(!isset(self::$instance) && is_array(self::$config)){
         	self::$instance = new Database(
         		self::$config['type'], self::$config['host'], self::$config['name'],
                 self::$config['user'], self::$config['pass'], self::$config['options']
@@ -91,11 +100,15 @@ class Database {
     }
 
     public static function end(){
-    	if( isset( self::$instance ) )
+    	if(isset(self::$instance))
     		self::main()->close();
     }
 
     // ------------->
+
+    public function error_reporting($active = true){
+        $this->debug = $active;
+    }
 
     function isConnected(){
         return $this->connected;
@@ -105,46 +118,55 @@ class Database {
         return $this->context;
     }
 
-    function fetch( $query, $params = array() ){
+    function fetch($query, $params = array()){
         try{
-            $stmt = $this->context->prepare( $query );
-            $stmt->execute( $params );
+            $stmt = $this->context->prepare($query);
+            $stmt->execute($params);
             return $stmt->fetch();
         }
-        catch( \PDOException $e ){
-            if( $this->debug )
-                echo( $e->getMessage() );
+        catch(\PDOException $e){
+            if($this->debug)
+            {
+                echo("$query\n");
+                echo($e->getMessage());
+            }
             return false;
         }
     }
 
-    function fetchAll( $query, $params = array() ){
+    function fetchAll($query, $params = array()){
         try{
-            $stmt = $this->context->prepare( $query );
-            $stmt->execute( $params );
+            $stmt = $this->context->prepare($query);
+            $stmt->execute($params);
             return $stmt->fetchAll();
         }
-        catch( \PDOException $e ){
-            if( $this->debug )
-                echo( $e->getMessage() );
+        catch(\PDOException $e){
+            if($this->debug)
+            {
+                echo("$query\n");
+                echo($e->getMessage());
+            }
             return false;
         }
     }
 
-    function execute( $query, $params = array() ){
+    function execute($query, $params = array()){
         try{
-            $stmt = $this->context->prepare( $query );
-            $res = $stmt->execute( $params );
+            $stmt = $this->context->prepare($query);
+            $res = $stmt->execute($params);
             return $res;
         }
-        catch( \PDOException $e ){
-            if( $this->debug )
-                echo( $e->getMessage() );
+        catch(\PDOException $e){
+            if($this->debug)
+            {
+                echo("$query\n");
+                echo($e->getMessage());
+            }
             return false;
         }
     }
 
-    function insert( $table, $params = array() ){
+    function insert($table, $params = array()){
         $query = "INSERT INTO $table ";
         $values = array();
         $add = '(';
@@ -153,21 +175,18 @@ class Database {
             $part1 .= "$add $key";
             $part2 .= "$add ?";
             $add = ',';
-            array_push( $values, $value );
+            array_push($values, $value);
         }
-        if( count($values) > 0 ){
+        if(count($values) > 0){
             $part1 .= ' )';
             $part2 .= ' )';
         }
-        $query .= ( $part1 . ' VALUES ' . $part2 );
+        $query .= ($part1 . ' VALUES ' . $part2);
 
-        if( $this->debug )
-            echo( $query );
-
-        return $this->execute( $query, $values );
+        return $this->execute($query, $values);
     }
 
-    function update( $table, $where = null, $params = array() ){
+    function update($table, $where = null, $params = array()){
         $query = "UPDATE $table ";
         $values = array();
         $add = 'SET';
@@ -175,61 +194,58 @@ class Database {
         foreach ($params as $key => $value) {
             $part .= "$add $key = ?";
             $add = ',';
-            array_push( $values, $value );
+            array_push($values, $value);
         }
-        if( isset( $where ) ){
-            $part .= ( ' WHERE ' . $where );
+        if(isset($where)){
+            $part .= (' WHERE ' . $where);
         }
         $query .= $part;
 
-        if( $this->debug )
-            echo( $query );
-
-        return $this->execute( $query, $values );
+        return $this->execute($query, $values);
     }
 
-    function select( $table, $fields = null, $where = null ){
+    function select($table, $fields = null, $where = null){
         $query = "SELECT ";
-        if( !isset( $fields ) )
+        if(!isset($fields))
             $query .= '* ';
         else {
-            if( is_array($fields) ){
+            if(is_array($fields)){
                 $add = ' ';
                 foreach ($fields as $field) {
-                    $query .= ( "$add $field" );
+                    $query .= ("$add $field");
+                    $add = ',';
+                }
+            }
+            else $query .= (" $fields ");
+        }
+        $query .= (" FROM $table");
+        if( isset( $where ) ){
+            $query .= (" WHERE $where");
+        }
+
+        return $this->fetch($query);
+    }
+
+    function selectAll($table, $fields = null, $where = null){
+        $query = "SELECT ";
+        if(!isset( $fields))
+            $query .= '* ';
+        else {
+            if(is_array($fields)){
+                $add = ' ';
+                foreach ($fields as $field) {
+                    $query .= ("$add $field");
                     $add = ',';
                 }
             }
             else $query .= ( " $fields " );
         }
-        $query .= ( " FROM $table" );
-        if( isset( $where ) ){
-            $query .= ( " WHERE $where" );
+        $query .= (" FROM $table");
+        if(isset($where)){
+            $query .= (" WHERE $where");
         }
 
-        return $this->fetch( $query );
-    }
-
-    function selectAll( $table, $fields = null, $where = null ){
-        $query = "SELECT ";
-        if( !isset( $fields ) )
-            $query .= '* ';
-        else {
-            if( is_array($fields) ){
-                $add = ' ';
-                foreach ($fields as $field) {
-                    $query .= ( "$add $field" );
-                    $add = ',';
-                }
-            }
-            else $query .= ( " $fields " );
-        }
-        $query .= ( " FROM $table" );
-        if( isset( $where ) ){
-            $query .= ( " WHERE $where" );
-        }
-
-        return $this->fetchAll( $query );
+        return $this->fetchAll($query);
     }
 
     function delete($table, $where = null){
@@ -238,10 +254,7 @@ class Database {
             $query = "DELETE FROM $table WHERE $where";
         else $query = "DELETE FROM $table";
 
-        if( $this->debug )
-            echo( $query );
-
-        return $this->execute( $query );
+        return $this->execute($query);
     }
 
     function close(){
@@ -253,6 +266,5 @@ class Database {
         $this->close();
     }
 }
-
 
 ?>

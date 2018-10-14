@@ -24,7 +24,7 @@ Object-Relational Mapping (ORM)
     ```php
     $db1 = new Pure\ORM\Database(....);
     $db2 = new Pure\ORM\Database(....);
-
+    
     $current = Pure\ORM\Database::main(); // this refers to $db2
     Pure\ORM\Database::change($db1);
     $current = Pure\ORM\Database::main(); // this refers to $db1
@@ -32,7 +32,9 @@ Object-Relational Mapping (ORM)
 5. Close the connection by:
     ```php
     $db->close();
-    ```    
+    ```
+
+
 
 ## How To execute queries:
 
@@ -66,105 +68,201 @@ Object-Relational Mapping (ORM)
     $result = $db->delete("users", "id = 1");
     ```
 
-# Schema Management
 
-The Schema utility can be used to create, delete and check the existence of a named table into the database.
 
-1. Check if a table exists:
-    ```php
-    $result = Pure\ORM\Schema::exists('users');
-    ```
-2. Delete a table:
-    ```php
-    $result = Pure\ORM\Schema::drop('users');
-    ```
-3. Create a table:
-    ```php
-    $result = Pure\ORM\Schema::create($query);
-    ```
-    where $query can be
-        1. string like "CREATE TABLE ..."
-        2. SchemaBuilder instance
+In order to **debug** the code, during the development phase, the error reporting should be activated
 
-# Schema Builder
+```php
+Pure\ORM\Database::main()->error_reporting(true);
+```
 
-The SchemaBuilder class let to define and create tables by code
 
-1. Instantiate the SchemaBuilder and define the table's name
-    ```php
-    $schema = new Pure\ORM\SchemaBuilder('users');
-    ```
-2. Add columns
-    ```php
-    $schema->add($name, $type, $expression = null)
-    ```
-    Let me show an example
-    ```php
-    $schema->add('id', 'INT');
-    $schema->add('name', 'VARCHAR(30)', 'NOT NULL');
-    $schema->add('username', 'VARCHAR(30)', 'NOT NULL');
-    $schema->unique('username'); // username must be unique
-    $schema->increments('id'); // auto_increment
-    $schema->primary('id'); // set the primary key
-    $schema->add('password', 'VARCHAR(30)', 'NOT NULL');
-    ```
-    In this way the table schema can be defined using code.
-    Each SchemaBuilder instance produces a query:
-    ```php
-    $query = $schema->query();
-    Pure\ORM\Schema::create( $query ); // create the table
-    ```
-    The $query of this example will be this:
-    ```sql
-    CREATE TABLE users ( id INT  not null auto_increment , name VARCHAR(30) NOT NULL, username VARCHAR(30) NOT NULL, password VARCHAR(30) NOT NULL, CONSTRAINT pk_id PRIMARY KEY ( id ), CONSTRAINT uc_username UNIQUE ( username ) )
-    ```
 
 # How To define Models
 
 The Model class let to map Schema and data to objects.
 First of all, a model class declaration is required.
-Inside the class constructor it is necessary to define and register all the required fields.
+The define function let the developer to specify the model's properties.
+
 ```php
-    class User extends Pure\ORM\Model
+class User extends Model
+{
+    public static function define($schema)
     {
-        function _constructor(){
-
-            $this->field('id');
-            $this->field('name');
-            $this->field('username');
-            $this->field('password');
-
-            $this->id('id'); // specify the id field
-        }
+        $schema->id();
+        $schema->char('username')->unique();
+        $schema->char('password');
+        $schema->char('email');
+        $schema->boolean('active')->default(true);
     }
+}
 ```
 Once a model is defined, it is easy to map data and queries with objects.
 
 1. Instantiate the model:
     ```php
-    $model = new User();
-    $model->name = 'Mario';
-    $model->password = '****';
+    $model = new User;
     $model->username = 'mariorossi98';
-
+    $model->password = 'mypassword';
+    $model->email = 'mario.rossi@mai.it';
+    
     $model->save();
     ```
-    The save method can be used to insert or update sql data.
+    The save method can be used to insert or update sql data. 
+
+    The framework will perform this choice by itself.
+
 2. Find models:
     ```php
     $model = User::find('id = 1');
     ```
+
 3. Delete data:
     ```php
     $model = User::find('id = 1');
     // ....
     $model->erase();
     ```
+
 4. Retrieve multiple models:
     ```php
     $models = User::all($condition = null);
     ```
-5. Get the table name, which is automatically generated:
+
+5. Get the table name:
     ```php
     $table_name = User::table();
     ```
+
+6. Use the methods 'data' and 'json' to encode the model to a simple reprensetation that should by easily shared.
+
+   ```php
+   var_dump($model->data());
+   /*
+   [
+     'id' => 1,
+     'username' => 'mariorossi98',
+     'password' => 'mypassword',
+     'email' => 'mario.rossi@mai.it'
+     'active' => 1
+   ]
+   */
+   
+   var_dump($model->json());
+   /*
+   {
+     "id":1,
+     "username":"mariorossi98",
+     "mypassword":"root",
+     "email":"mario.rossi@mai.it",
+     "active":1
+   }
+   */
+   ```
+
+#### How To specify the model's table name
+
+If not speficied, the table name will be the model class name + 's'. 
+
+For example, User -> 'Users'. Otherwise, is it also possible to specify the table:
+
+```php
+class User extends Model
+{
+    public static function table()
+    {
+        return 'my_custom_table_name';
+    }
+    
+    public static function define($schema)
+    {
+        $schema->id();
+        $schema->char('username')->unique();
+        $schema->char('password');
+        $schema->char('email');
+        $schema->boolean('active')->default(true);
+    }
+}
+```
+
+#### How To define the model's properties
+
+```php
+- $schema->id($name = 'id') // adds an id property (integer, primary, increments)
+- $schema->boolean($name)
+- $schema->integer($name)
+- $schema->float($name)
+- $schema->char($name, $size = 30)
+- $schema->text($name)
+- $schema->date($name)
+- $schema->time($name)
+- $schema->datetime($name)
+- $schema->timestamps()     // adds two datetime properties: 'created_at', 'updated_at'
+```
+
+Properties can be specified by descriptors:
+
+```php
+- default($value)   // specifies the property's default value
+- increments()      // 'auto_increment'
+- nullable()        // by default, all properties are not nullable
+- primary()         // primary key
+- unique()          // unique value
+- unsigned()        // valid for numbers
+- link(OtherModelClass, OtherModelProperty) // foreign key
+```
+
+Property's descriptors can be concatenated like in the examples below:
+
+```php
+$schema->integer('id')->increments()->primary();
+$schema->text('notes')->nullable();
+$schema->char('username', 50)->unique();
+$schema->boolean('active')->default(true);
+```
+
+According to define foreing keys, use the 'link' descriptor, link in this example
+
+```php
+class Book extends Model
+{    
+    public static function define($schema)
+    {
+        $schema->id();
+        $schema->char('name')->unique();
+        $schema->integer('bought_by')->link(User::class, 'id');
+    }
+}
+```
+
+
+
+# Schema Management
+
+The Schema utility can be used to create, delete and check the existence of a named table into the database.
+
+1. Check if a table exists:
+
+   ```php
+   $result = Pure\ORM\Schema::exists(User::class);
+   ```
+
+2. Delete a table:
+
+   ```php
+   $result = Pure\ORM\Schema::drop(User::class);
+   ```
+
+3. Create a table:
+
+   ```php
+   $result = Pure\ORM\Schema::create(User::class);
+   ```
+
+4. Is also possible to delete all the table entries:
+
+   ```php
+   $result = Pure\ORM\Schema::clear(User::class);
+   ```
+
+

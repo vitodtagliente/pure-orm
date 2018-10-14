@@ -1,96 +1,85 @@
 <?php
 
+/*
+Questa classe permette di definire,
+via codice, la struttura su database con cui
+andare a definire la tabella del modello specificato.
+*/
+
 namespace Pure\ORM;
 
-class SchemaBuilder {
-	private $columns = array();
-	private $name;
-	private $primary = array();
-	private $foreign = array();
-	private $unique = array();
-	private $increment;
+class SchemaBuilder
+{
+	private $table = null;
+	private $properties = array();
+	private $composite_primary = array();
 
-	public function __construct( $name ){
-		$this->name = $name;
+	public function __construct($tablename){
+		$this->table = $tablename;
 	}
 
-	public function add( $name, $type, $expression = null ){
-		$this->columns[$name] = array(
-			'type' => $type,
-			'expression' => $expression
-		);
-	}
+	public function __destruct(){}
 
-	public function primary( $column ){
-		if( is_array( $column ) ){
-			$name = "pk_";
-			foreach( $column as $field )
-				$name .= ( $field );
-			$values = $this->arrayToString( $column );
-			array_push( $this->primary, "CONSTRAINT $name PRIMARY KEY ( $values )" );
+	public function get($property){
+		if(array_key_exists($property, $this->properties)){
+			return $this->properties[$property];
 		}
-		else array_push( $this->primary, "CONSTRAINT pk_$column PRIMARY KEY ( $column )" );
+		return null;
 	}
 
-	public function increments( $column ){
-		if( isset( $this->columns[ $column ] ) ){
-			$this->columns[ $column ]['increment'] = 'auto_increment';
-			if( strpos( strtolower( $this->columns[ $column ][ 'expression' ] ), 'not null' ) === false )
-				$this->columns[ $column ][ 'expression' ] .= ' not null';
+	public function add($property ,$type){
+		if(!array_key_exists($property, $this->properties)){
+			$this->properties[$property] = new SchemaPropertyDescriptor($property, $type);
 		}
+		return $this->properties[$property];
 	}
 
-	public function unique( $column ){
-		if( is_array( $column ) ){
-			$name = "uc_";
-			foreach( $column as $field )
-				$name .= ( $field );
-			$values = $this->arrayToString( $column );
-			array_push( $this->unique, "CONSTRAINT $name UNIQUE ( $values )" );
-		}
-		else array_push( $this->unique, "CONSTRAINT uc_$column UNIQUE ( $column )" );
+	public function id($name = 'id'){ return $this->integer($name)->primary()->increments(); }
+
+	public function boolean($name){ return $this->add($name, 'BOOL'); }
+
+	public function integer($name){ return $this->add($name, 'INT'); }
+
+	public function float($name){ return $this->add($name, 'FLOAT'); }
+
+	public function char($name, $size = 30){ return $this->add($name, "VARCHAR($size)"); }
+
+	public function text($name){ return $this->add($name, 'TEXT'); }
+
+	public function date($name){ return $this->add($name, 'DATE'); }
+
+	public function time($name){ return $this->add($name, 'TIME'); }
+
+	public function datetime($name){ return $this->add($name, 'DATETIME'); }
+
+	public function timestamps(){ $this->datetime('created_at'); $this->datetime('updated_at');	}
+
+	// make a composite primary key
+	public function primary($names = array()){
+		// TODO: chiave primaria composta
 	}
 
-	public function foreign( $column, $field ){
-		if( isset( $this->columns[ $column ] ) )
-			array_push( $this->foreign, "CONSTRAINT fk_" . $column . date('Ymdhms') . " FOREIGN KEY ( $column ) REFERENCES $field" );
+	// ritorna il nome di tutte le properties
+	public function names(){
+		return array_keys($this->properties);
+	}
+
+	// ritorna tutte le proprietà dello schema
+	public function properties(){
+		return $this->properties;
 	}
 
 	public function query(){
-		$query = "CREATE TABLE " . $this->name . " (";
-		$add = '';
-		foreach ($this->columns as $field => $value) {
-			$query .= ( "$add $field $value[type] $value[expression]" );
-			if( isset( $value['increment'] ) )
-				$query .= (" $value[increment] ");
-			$add = ',';
+		$query = array();
+		array_push($query, "CREATE TABLE " . $this->table . " (");
+		$comma = '';
+		foreach($this->properties as $name => $descriptor)
+		{
+			array_push($query, "$comma\n\t" . $descriptor->query_statements($this->table));
+			$comma = ',';
 		}
-		foreach ($this->primary as $p) {
-			$query .= ", $p";
-		}
-		foreach ($this->foreign as $f) {
-			$query .= ( ", $f" );
-		}
-		foreach ($this->unique as $u) {
-			$query .= ( ", $u" );
-		}
-		$query .= ' )';
-
-		return $query;
-	}
-
-	private function arrayToString( $v ){
-		$string = "";
-		$add = '';
-		foreach ($v as $value) {
-			$string .= ( "$add $value" );
-			$add = ',';
-		}
-		return $string;
-	}
-
-	public function __destruct(){
-
+		array_push($query, "\n)");
+		return implode($query);
 	}
 }
 
