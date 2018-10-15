@@ -6,9 +6,15 @@ class Schema {
 
 	private function __construct(){}
 
-	public static function create($model_class){
+	public static function create($model_class, $seed_schema = true){
 		if(class_exists($model_class) && is_subclass_of($model_class, '\Pure\ORM\Model')){
-			return Database::main()->execute( $model_class::schema()->query() );
+			if(Database::main()->execute($model_class::schema()->query()))
+			{
+				if($seed_schema)
+					$model_class::seed();
+				return true;
+			}
+			return false;
 		}
 		else 
 		{

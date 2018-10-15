@@ -266,3 +266,32 @@ The Schema utility can be used to create, delete and check the existence of a na
    ```
 
 
+
+It is possible to fill test data at the schema's creation time. To perform this operation, the seed function in the Model should be overriden.
+
+```php
+class User extends Model
+{
+    public static function define($schema)
+    {
+        $schema->id();
+        $schema->char('username')->unique();
+        $schema->char('password');
+        $schema->char('email');
+        $schema->boolean('active')->default(true);
+    }
+    
+    // executed only at the schema creation
+    public static function seed()
+    {
+        $model = new User;
+        $model->username = 'test';
+        $model->password = 'test';
+        $model->email = 'test@mail.com';
+        $model->save();
+        
+        // ... other models
+    }
+}
+```
+

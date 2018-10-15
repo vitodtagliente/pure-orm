@@ -200,4 +200,10 @@ abstract class Model
 
     // da derivare per la definizione dello schema    
     abstract public static function define($schema);
+
+    // sovrascrivere questa funzione per definire i seed per modello
+    // in fase di creazione dello schema
+    public static function seed(){
+
+    }
 }
