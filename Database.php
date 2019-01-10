@@ -175,6 +175,7 @@ class Database {
             $part1 .= "$add $key";
             $part2 .= "$add ?";
             $add = ',';
+            if(is_bool($value)) $value = ($value)?1:0;
             array_push($values, $value);
         }
         if(count($values) > 0){
@@ -182,6 +183,38 @@ class Database {
             $part2 .= ' )';
         }
         $query .= ($part1 . ' VALUES ' . $part2);
+
+        return $this->execute($query, $values);
+    }
+
+    function insertMany($table, $records = array()){
+        if(empty($records)) return false;
+
+        $query = "INSERT INTO $table (";
+        $keys = array_keys($records[0]);
+        $values = array();
+        $symbolic_values = array();
+
+        foreach ($keys as $key) {
+            array_push($symbolic_values, '?');
+        }
+        $values_query = '(' . implode(', ', $symbolic_values) . ')';
+
+        $query .= implode(', ', $keys) . ') VALUES ';
+        $comma = '';
+        for($i = 0; $i < count($records); $i++){
+            $query .= $comma . $values_query;
+            $comma = ', ';
+        }
+
+        foreach ($records as $record) {
+            $record_values = array_values($record);
+            for ($i = 0; $i < count($record_values); $i++) {
+                if(is_bool($record_values[$i]))
+                    $record_values[$i] = ($record_values[$i])?1:0;
+            }
+            $values = array_merge($values, $record_values);
+        }
 
         return $this->execute($query, $values);
     }
@@ -194,6 +227,7 @@ class Database {
         foreach ($params as $key => $value) {
             $part .= "$add $key = ?";
             $add = ',';
+            if(is_bool($value)) $value = ($value)?1:0;
             array_push($values, $value);
         }
         if(isset($where)){
@@ -226,7 +260,7 @@ class Database {
         return $this->fetch($query);
     }
 
-    function selectAll($table, $fields = null, $where = null){
+    function selectAll($table, $fields = null, $where = null, $statement = null){
         $query = "SELECT ";
         if(!isset( $fields))
             $query .= '* ';
@@ -244,6 +278,9 @@ class Database {
         if(isset($where)){
             $query .= (" WHERE $where");
         }
+        if(isset($statement)){
+            $query .= (" $statement");
+        }   
 
         return $this->fetchAll($query);
     }

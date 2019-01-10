@@ -49,6 +49,10 @@ abstract class Model
 			$this->properties[$key] = $value;
 	}
 
+    public function __isset($key){
+        return isset($this->properties[$key]);
+    }
+
     /*
 	// setta il campo con validazione
 	public function set($key, $value)
@@ -151,6 +155,11 @@ abstract class Model
         $classname = get_called_class();
         $model = new $classname();
 
+        if(is_numeric($where))
+        {
+            $where = "id = '$where'";
+        }
+
         $result = Database::main()->select(static::table(), null, $where);
         if(!$result)
             return null;
@@ -161,12 +170,24 @@ abstract class Model
         return $model;
     }
 
-    public static function all($where = null){
+    public static function insert($models){
+        if(is_array($models)){
+            $records = array();
+            foreach ($models as $model) {
+                array_push($records, $model->data());
+            }
+            return Database::main()->insertMany(static::table(), $records);
+        }
+        else 
+            return $models->save();
+    }
+
+    public static function all($where = null, $statement = null){
         $classname = get_called_class();
         $temp = new $classname();
         $models = array();
 
-        $result = Database::main()->selectAll(static::table(), null, $where);
+        $result = Database::main()->selectAll(static::table(), null, $where, $statement);
         if(!empty($result))
         {
             foreach ($result as $r)
@@ -179,6 +200,15 @@ abstract class Model
             }
         }
         return $models;
+    }
+
+    public static function count(){
+        $result = Database::main()->fetch('SELECT COUNT(*) FROM ' . static::table());
+        if(isset($result) && array_key_exists('COUNT(*)', $result))
+        {
+            return $result['COUNT(*)'];
+        }
+        return -1;
     }
 
     // Gestione degli schemi.

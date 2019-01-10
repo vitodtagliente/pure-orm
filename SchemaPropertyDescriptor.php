@@ -46,10 +46,10 @@ class SchemaPropertyDescriptor
 	public function unsigned(){ $this->unsigned = true; return $this; }
 
 	public function link($model_class, $property = 'id'){
-		if(class_exists($model_class) && subclass_of($model_class, '\Pure\ORM\Model') && isset($property))
+		if(class_exists($model_class) && is_subclass_of($model_class, '\Pure\ORM\Model') && isset($property))
 		{
 			$this->foreign = true;
-			$this->foreign_class = $model_class;
+			$this->foreign_class = $model_class::table();
 			$this->foreign_property = $property;
 		}
 		return $this;
@@ -71,8 +71,13 @@ class SchemaPropertyDescriptor
 		array_push($query, $this->name . ' ' . $this->type);
 		if($this->nullable == false)
 			array_push($query, ' NOT NULL');
-		if(isset($this->default_value))
-			array_push($query, ' DEFAULT \'' . $this->default_value . '\'');
+		else array_push($query, ' NULL');
+		if(isset($this->default_value)){
+			$value = $this->default_value;
+			if($this->type == 'BOOL')
+				$value = ($this->default_value)?1:0;
+			array_push($query, " DEFAULT '$value'");
+		}
 		if($this->auto_increments && $this->type == 'INT')
 			array_push($query, ' AUTO_INCREMENT');
 		// constraints
@@ -82,7 +87,7 @@ class SchemaPropertyDescriptor
 			array_push($query, ",\n\t" . 'CONSTRAINT UC_' . $this->name . ' UNIQUE KEY (' . $this->name . ')');
 		if($this->foreign)
 			array_push($query, ",\n\tCONSTRAINT FK_$table" . $this->foreign_class . '_' . $this->name .
-				' FOREIGN KEY (' . $this->name . ") REFERENCES $table(" . $this->foreign_property . ')');
+				' FOREIGN KEY (' . $this->name . ") REFERENCES " . $this->foreign_class . " (" . $this->foreign_property . ')');
 
 		return implode($query);
 	}
