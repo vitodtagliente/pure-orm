@@ -8,5 +8,7 @@ namespace Pure\ORM;
 
 class Migration
 {
-	
+
 }
+
+?>

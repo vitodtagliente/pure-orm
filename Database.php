@@ -1,302 +1,69 @@
 <?php
 
-/*
-    How To:
-
-    Connecting to DataBase
-    $db = new Database("mysql", "localhost", "database", "root", "password", array(PDO::MYSQL_ATTR_INIT_COMMAND => 'SET NAMES utf8'));
-
-    Getting row
-    $db->fetch("SELECT email, username FROM users WHERE username =?", array("aaaa"));
-    $db->select("users", array( 'email', 'username' ), "username = aaaa" );
-
-    Getting multiple rows
-    $db->fetchAll("SELECT id, username FROM users");
-
-    inserting a row
-    $db->insert("users", array( "name" => "aaaa", "email" => "aaaa@email.com"));
-
-    updating existing row
-    $db->update("users", "id = 1", array( "name" => "aaaa1" ) );
-
-*/
-
 namespace Pure\ORM;
 
 class Database {
-    // interfaccia di collegamento al db
-    private $context = null;
-    // speficia lo stato di connessione al database
-    private $connected = false;
-    // se attivo, abilita l'output degli errori
-    private $debug = false;
-
-    // memorizza l'ultimo pdo bindato
-    private static $pdo_bind = null;
-
-    // singleton pattenr
+    // oggetto di connessione al database
+    private $connection = null;
+    // singleton pattern
     private static $instance;
     // configurazione di collegamento al database
-    private static $config;
+    private static $connection_settings;
 
-    function __construct($type, $host, $dbname, $username, $password, $options = array()){
-        $this->connected = true;
-
-        if(isset(self::$pdo_bind))
-            return;
-
-        try {
-            $this->context = new \PDO(
-                "$type:host={$host};dbname={$dbname};charset=utf8", $username, $password, $options
-            );
-            $this->context->setAttribute( \PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION );
-            $this->context->setAttribute( \PDO::ATTR_DEFAULT_FETCH_MODE, \PDO::FETCH_ASSOC );
-        }
-        catch(\PDOException $e) {
-            if($this->debug)
-                throw new Exception($e->getMessage());
-            $this->connected = false;
+    function __construct($settings)
+    {
+        $this->connection = new Connection($settings);
+        if($this->connection->is_connected() == false)
+        {
+            // security issue
+            // echo ($this->connection->getInfo());
+            exit("Database connection failed!");
         }
     }
 
-    // <------------- STATIC FUNCTIONS
-
-    public static function prepare($type, $host, $dbname, $username, $password, $options = array()){
-    	self::$config = array(
-            'type' => $type,
-            'host' => $host,
-            'name' => $dbname,
-            'user' => $username,
-            'pass' => $password,
-            'options' => $options
-        );
-    }
-
-    public static function bind($pdo){
-        if(!isset($pdo))
-            return null;
-        self::$pdo_bind = $pdo;
-
-        $db = new self();
-
-        self::$pdo_bind = null;
-
-        return $db;
-    }
-
-    public static function change($db){
-        if(is_object($db))
-            self::$instance = $db;
+    public static function prepare($settings){
+    	self::$connection_settings = $settings;
     }
 
     public static function main(){
-        if(!isset(self::$instance) && is_array(self::$config)){
-        	self::$instance = new Database(
-        		self::$config['type'], self::$config['host'], self::$config['name'],
-                self::$config['user'], self::$config['pass'], self::$config['options']
-        	);
+        if(!isset(self::$instance)){
+            if(isset(self::$connection_settings))
+            {
+                self::$instance = new Database(self::$connection_settings);
+                    self::$connection_settings = null;
+            }
+        	else exit("Database was not prepared with a valid ConnectionSettings");
         }
         return self::$instance;
     }
 
-    public static function end(){
-    	if(isset(self::$instance))
-    		self::main()->close();
+    public static function bind($connection){
+        if(isset(self::$instance))
+            self::$instance->connection = $connection;
     }
 
-    // ------------->
+    public static function end(){
+    	if(isset(self::$instance))
+    		self::$instance->close();
+    }
 
     public function error_reporting($active = true){
         $this->debug = $active;
     }
 
-    function isConnected(){
-        return $this->connected;
+    public function is_connected(){
+        if(isset($this->connection))
+            return $this->connection->is_connected();
+        return false;
     }
 
-    function pdo(){
-        return $this->context;
-    }
-
-    function fetch($query, $params = array()){
-        try{
-            $stmt = $this->context->prepare($query);
-            $stmt->execute($params);
-            return $stmt->fetch();
-        }
-        catch(\PDOException $e){
-            if($this->debug)
-            {
-                echo("$query\n");
-                echo($e->getMessage());
-            }
-            return false;
-        }
-    }
-
-    function fetchAll($query, $params = array()){
-        try{
-            $stmt = $this->context->prepare($query);
-            $stmt->execute($params);
-            return $stmt->fetchAll();
-        }
-        catch(\PDOException $e){
-            if($this->debug)
-            {
-                echo("$query\n");
-                echo($e->getMessage());
-            }
-            return false;
-        }
-    }
-
-    function execute($query, $params = array()){
-        try{
-            $stmt = $this->context->prepare($query);
-            $res = $stmt->execute($params);
-            return $res;
-        }
-        catch(\PDOException $e){
-            if($this->debug)
-            {
-                echo("$query\n");
-                echo($e->getMessage());
-            }
-            return false;
-        }
-    }
-
-    function insert($table, $params = array()){
-        $query = "INSERT INTO $table ";
-        $values = array();
-        $add = '(';
-        $part1 = ''; $part2 = '';
-        foreach ($params as $key => $value) {
-            $part1 .= "$add $key";
-            $part2 .= "$add ?";
-            $add = ',';
-            if(is_bool($value)) $value = ($value)?1:0;
-            array_push($values, $value);
-        }
-        if(count($values) > 0){
-            $part1 .= ' )';
-            $part2 .= ' )';
-        }
-        $query .= ($part1 . ' VALUES ' . $part2);
-
-        return $this->execute($query, $values);
-    }
-
-    function insertMany($table, $records = array()){
-        if(empty($records)) return false;
-
-        $query = "INSERT INTO $table (";
-        $keys = array_keys($records[0]);
-        $values = array();
-        $symbolic_values = array();
-
-        foreach ($keys as $key) {
-            array_push($symbolic_values, '?');
-        }
-        $values_query = '(' . implode(', ', $symbolic_values) . ')';
-
-        $query .= implode(', ', $keys) . ') VALUES ';
-        $comma = '';
-        for($i = 0; $i < count($records); $i++){
-            $query .= $comma . $values_query;
-            $comma = ', ';
-        }
-
-        foreach ($records as $record) {
-            $record_values = array_values($record);
-            for ($i = 0; $i < count($record_values); $i++) {
-                if(is_bool($record_values[$i]))
-                    $record_values[$i] = ($record_values[$i])?1:0;
-            }
-            $values = array_merge($values, $record_values);
-        }
-
-        return $this->execute($query, $values);
-    }
-
-    function update($table, $where = null, $params = array()){
-        $query = "UPDATE $table ";
-        $values = array();
-        $add = 'SET';
-        $part = '';
-        foreach ($params as $key => $value) {
-            $part .= "$add $key = ?";
-            $add = ',';
-            if(is_bool($value)) $value = ($value)?1:0;
-            array_push($values, $value);
-        }
-        if(isset($where)){
-            $part .= (' WHERE ' . $where);
-        }
-        $query .= $part;
-
-        return $this->execute($query, $values);
-    }
-
-    function select($table, $fields = null, $where = null){
-        $query = "SELECT ";
-        if(!isset($fields))
-            $query .= '* ';
-        else {
-            if(is_array($fields)){
-                $add = ' ';
-                foreach ($fields as $field) {
-                    $query .= ("$add $field");
-                    $add = ',';
-                }
-            }
-            else $query .= (" $fields ");
-        }
-        $query .= (" FROM $table");
-        if( isset( $where ) ){
-            $query .= (" WHERE $where");
-        }
-
-        return $this->fetch($query);
-    }
-
-    function selectAll($table, $fields = null, $where = null, $statement = null){
-        $query = "SELECT ";
-        if(!isset( $fields))
-            $query .= '* ';
-        else {
-            if(is_array($fields)){
-                $add = ' ';
-                foreach ($fields as $field) {
-                    $query .= ("$add $field");
-                    $add = ',';
-                }
-            }
-            else $query .= ( " $fields " );
-        }
-        $query .= (" FROM $table");
-        if(isset($where)){
-            $query .= (" WHERE $where");
-        }
-        if(isset($statement)){
-            $query .= (" $statement");
-        }   
-
-        return $this->fetchAll($query);
-    }
-
-    function delete($table, $where = null){
-        $query = null;
-        if(isset($where))
-            $query = "DELETE FROM $table WHERE $where";
-        else $query = "DELETE FROM $table";
-
-        return $this->execute($query);
+    public function pdo(){
+        return $this->connection->get_context();
     }
 
     function close(){
-        $this->context = null;
-        $this->connected = false;
+        if($this->is_connected())
+            $this->connection->disconnect();
     }
 
     function __destruct(){

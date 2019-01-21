@@ -8,7 +8,8 @@ class Schema {
 
 	public static function create($model_class, $seed_schema = true){
 		if(class_exists($model_class) && is_subclass_of($model_class, '\Pure\ORM\Model')){
-			if(Database::main()->execute($model_class::schema()->query()))
+			$query = new Query($model_class::schema()->query());
+			if($query->execute())
 			{
 				if($seed_schema)
 					$model_class::seed();
@@ -16,18 +17,20 @@ class Schema {
 			}
 			return false;
 		}
-		else 
+		else
 		{
 			error_log("$model_class is not a Pure\ORM\Model class");
 			return false;
 		}
 	}
 
-	public static function drop($model_class){		
+	public static function drop($model_class){
 		if(class_exists($model_class) && is_subclass_of($model_class, '\Pure\ORM\Model')){
-			return Database::main()->execute('DROP TABLE IF EXISTS ' . $model_class::table());
+			$query = new Query($model_class::table());
+			$query->drop();
+			return $query->execute();
 		}
-		else 
+		else
 		{
 			error_log("$model_class is not a Pure\ORM\Model class");
 			return false;
@@ -36,9 +39,11 @@ class Schema {
 
 	public static function exists( $model_class ){
 		if(class_exists($model_class) && is_subclass_of($model_class, '\Pure\ORM\Model')){
-			return Database::main()->execute('SELECT 1 FROM ' . $model_class::table() . ' LIMIT 1');
+			$query = new Query($model_class::table());
+			$query->exists();
+			return $query->execute();
 		}
-		else 
+		else
 		{
 			error_log("$model_class is not a Pure\ORM\Model class");
 			return false;
@@ -47,9 +52,11 @@ class Schema {
 
 	public static function clear($model_class){
 		if(class_exists($model_class) && is_subclass_of($model_class, '\Pure\ORM\Model')){
-			return Database::main()->execute('DELETE FROM ' . $model_class::table());
+			$query = new Query($model_class::table());
+			$query->delete();
+			return $query->execute();
 		}
-		else 
+		else
 		{
 			error_log("$model_class is not a Pure\ORM\Model class");
 			return false;
