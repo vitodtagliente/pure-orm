@@ -2,12 +2,12 @@
 
 namespace Pure\ORM;
 
-// Classe utilizzata per rappresentare
-// le informazioni di connessione ad un database
+// Classe di configurazione di una connessione database
 
 class ConnectionSettings
 {
     public const MySQL = 'mysql';
+    public const SQLite = 'sqlite';
 
     // insieme dei campi della tabella
 	private $properties = array();
@@ -35,22 +35,41 @@ class ConnectionSettings
         return json_encode($this->properties);
     }
 
+    public function get_type(){
+    	if(isset($this->properties['type']))
+    		return $this->properties['type'];
+    	return self::MySQL;
+    }
+
+    public function mysql(){ $this->type = self::MySQL; return $this; }
+    public function lite(){ $this->type = self::SQLite; return $this; }
+
+    // ritorna la stringa di connessione per interfaccia pdo
     public function connection_string(){
         $connection_string = array();
-        array_push($connection_string,
-            (isset($this->properties['type']))?
-            $this->properties['type']:self::MySQL
-        );
-        array_push($connection_string, ':host=');
-        array_push($connection_string,
-            (isset($this->properties['host']))?
-            $this->properties['host']:'localhost'
-        );
-        array_push($connection_string, ';dbname=');
-        array_push($connection_string,
-            (isset($this->properties['name']))?
-            $this->properties['name']:null
-        );
+
+        $type = $this->get_type();
+        array_push($connection_string, $type);
+
+        if($type == self::SQLite){
+        	$filename = 'db.sqlite';
+        	if(isset($this->properties['filename']))
+        		$filename = $this->properties['filename'];
+        	array_push($connection_string, ":$filename");
+        }
+        else {
+	        array_push($connection_string, ':host=');
+	        array_push($connection_string,
+	            (isset($this->properties['host']))?
+	            $this->properties['host']:'localhost'
+	        );
+	        array_push($connection_string, ';dbname=');
+	        array_push($connection_string,
+	            (isset($this->properties['name']))?
+	            $this->properties['name']:null
+	        );
+        }
+        
         array_push($connection_string, ';charset=utf8');
         return implode($connection_string);
     }

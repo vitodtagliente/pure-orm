@@ -2,7 +2,9 @@
 
 namespace Pure\ORM;
 
-// Questa classe si occupa di gestire la connessione al Database
+// Questa classe modella la connessione a database
+// vuole in input un array associativo di configurazione di connessione
+// oppure un ConnectionSettings
 
 class Connection
 {
@@ -75,6 +77,7 @@ class Connection
         return $this->context;
     }
 
+    // ritorna le informazioni di connessione
     public function info(){
         return $this->settings->info();
     }
