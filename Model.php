@@ -192,9 +192,7 @@ abstract class Model
         $query = new Query(static::table());
         $query->count();
         $result = $query->execute();
-        if(is_integer($result))
-            return $result;
-        return -1;
+        return $result;
     }
 
     // Gestione degli schemi.

@@ -47,10 +47,6 @@ class Database {
     		self::$instance->close();
     }
 
-    public function error_reporting($active = true){
-        $this->debug = $active;
-    }
-
     public function is_connected(){
         if(isset($this->connection))
             return $this->connection->is_connected();

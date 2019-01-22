@@ -80,7 +80,7 @@ class QueryBuilder
     {
         $query = array("SELECT COUNT(*) FROM $table");
         if(!empty($condition))
-            array_push(" WHERE $condition");
+            array_push($query, " WHERE $condition");
         return implode($query);
     }
 

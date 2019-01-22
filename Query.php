@@ -27,6 +27,12 @@ class Query
     private $success = false;
     private $error_message = null;
 
+    private static $report_errors = false;
+
+    public static function error_reporting($value = true){
+        self::$report_errors = $value;
+    }
+
     public function __construct($table){
         if(!isset($table)) exit("Invalid query table reference.");
         $this->table = $table;
@@ -47,6 +53,12 @@ class Query
     public function delete(){
         $this->clear_type();
         $this->type = self::TYPE_DELETE;
+        return $this;
+    }
+
+    public function drop(){
+        $this->clear_type();
+        $this->type = self::TYPE_DROP;
         return $this;
     }
 
@@ -145,6 +157,8 @@ class Query
             }
             catch(\PDOException $e){
                 $this->error_message = $query."\n".$e->getMessage();
+                if(self::$report_errors)
+                    echo exit("Query error: " . $this->error_message);
                 return false;
             }
         }
@@ -190,7 +204,16 @@ class Query
         else if($this->is_count()) return array();
         else if($this->is_exists()) return array();
         else if($this->is_insert()){
-            return $this->sanitize(array_values($this->data));
+            // Are many records?
+            if(isset($this->data[0]))
+            {
+                $values = array();
+                foreach ($this->data as $record) {
+                    $values = array_merge($values, $this->sanitize(array_values($record)));
+                }
+                return $values;
+            }
+            return $this->sanitize(array_values($this->data));           
         }
         else if($this->is_select()){
             return array();

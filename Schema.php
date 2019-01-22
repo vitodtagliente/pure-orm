@@ -63,6 +63,19 @@ class Schema {
 		}
 	}
 
+	public static function count($model_class, $condition = null){
+		if(class_exists($model_class) && is_subclass_of($model_class, '\Pure\ORM\Model')){
+			$query = new Query($model_class::table());
+			$query->count()->where($condition);
+			return $query->execute();
+		}
+		else
+		{
+			error_log("$model_class is not a Pure\ORM\Model class");
+			return false;
+		}
+	}
+
 	private function __destruct(){}
 }
 
