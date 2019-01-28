@@ -45,7 +45,7 @@ class SchemaPropertyDescriptor
 
 	public function unsigned(){ $this->unsigned = true; return $this; }
 
-	public function link($model_class, $property = 'id'){
+	public function link(string $model_class, $property = 'id'){
 		if(class_exists($model_class) && is_subclass_of($model_class, '\Pure\ORM\Model') && isset($property))
 		{
 			$this->foreign = true;
@@ -56,16 +56,16 @@ class SchemaPropertyDescriptor
 	}
 
 	// ottieni il valore di default
-	public function get_default(){ return $this->default_value; }
+	public function getDefaultValue(){ return $this->default_value; }
 
 	// ritorna true, se la proprietà è una chiave primaria
-	public function is_primary(){ return $this->primary; }
+	public function isPrimaryKey(){ return $this->primary; }
 
 	// ritorna il tipo
-	public function get_type(){ return $this->type; }
+	public function getType(){ return $this->type; }
 
 	// query statement generation
-	public function query_statements($table){
+	public function getQueryStatements($table){
 		// field declaration
 		$query = array();
 		array_push($query, $this->name . ' ' . $this->type);

@@ -2,6 +2,8 @@
 
 namespace Pure\ORM;
 
+// singleton di accesso alla connessione di database
+
 class Database {
     // oggetto di connessione al database
     private $connection = null;
@@ -10,18 +12,18 @@ class Database {
     // configurazione di collegamento al database
     private static $connection_settings;
 
-    function __construct($settings)
+    function __construct(Connection $connection)
     {
-        $this->connection = new Connection($settings);
-        if($this->connection->is_connected() == false)
-        {
-            // security issue
-            // echo ($this->connection->getInfo());
-            exit("Database connection failed!");
+        $this->connection = $connection;
+        if($this->connection->isConnected() == false){
+            if($this->connection->connect() == false)
+            {
+                exit("Database connection failed!");
+            }
         }
     }
 
-    public static function prepare($settings){
+    public static function prepare(ConnectionSettings $settings){
     	self::$connection_settings = $settings;
     }
 
@@ -29,7 +31,7 @@ class Database {
         if(!isset(self::$instance)){
             if(isset(self::$connection_settings))
             {
-                self::$instance = new Database(self::$connection_settings);
+                self::$instance = new Database(new Connection(self::$connection_settings, false));
                     self::$connection_settings = null;
             }
         	else exit("Database was not prepared with a valid ConnectionSettings");
@@ -47,18 +49,18 @@ class Database {
     		self::$instance->close();
     }
 
-    public function is_connected(){
+    public function isConnected(){
         if(isset($this->connection))
-            return $this->connection->is_connected();
+            return $this->connection->isConnected();
         return false;
     }
 
-    public function pdo(){
-        return $this->connection->get_context();
+    public function getPdo(){
+        return $this->connection->getPdo();
     }
 
     function close(){
-        if($this->is_connected())
+        if($this->isConnected())
             $this->connection->disconnect();
     }
 

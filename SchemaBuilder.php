@@ -60,22 +60,22 @@ class SchemaBuilder
 	}
 
 	// ritorna il nome di tutte le properties
-	public function names(){
+	public function getNames(){
 		return array_keys($this->properties);
 	}
 
 	// ritorna tutte le proprietà dello schema
-	public function properties(){
+	public function getProperties(){
 		return $this->properties;
 	}
 
-	public function query(){
+	public function getQuery(){
 		$query = array();
 		array_push($query, "CREATE TABLE " . $this->table . " (");
 		$comma = '';
 		foreach($this->properties as $name => $descriptor)
 		{
-			array_push($query, "$comma\n\t" . $descriptor->query_statements($this->table));
+			array_push($query, "$comma\n\t" . $descriptor->getQueryStatements($this->table));
 			$comma = ',';
 		}
 		array_push($query, "\n)");

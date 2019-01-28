@@ -3,13 +3,15 @@
 namespace Pure\ORM;
 
 // Classe di configurazione di una connessione database
+// prende in input un array di configurazione (opzionale)
+// e permette di configurare manualmente
+// la confiugurazione della connessione
 
 class ConnectionSettings
 {
     public const MySQL = 'mysql';
     public const SQLite = 'sqlite';
 
-    // insieme dei campi della tabella
 	private $properties = array();
 
 	public function __get($key){
@@ -27,28 +29,34 @@ class ConnectionSettings
         return isset($this->properties[$key]);
     }
 
-    public function __construct($data = array()){
+    public function __construct(array $data = array()){
         $this->properties = $data;
     }
 
-    public function info(){
+    public function toJson(){
         return json_encode($this->properties);
     }
 
-    public function get_type(){
-    	if(isset($this->properties['type']))
-    		return $this->properties['type'];
+    private function getCharset(){
+        if(isset($this->charset))
+            return $this->charset;
+        return 'utf8';
+     }
+
+    public function getType(){
+    	if(isset($this->type)) return $this->type;
     	return self::MySQL;
     }
 
+    // configura il tipo di database
     public function mysql(){ $this->type = self::MySQL; return $this; }
     public function lite(){ $this->type = self::SQLite; return $this; }
 
     // ritorna la stringa di connessione per interfaccia pdo
-    public function connection_string(){
+    public function getConnectionString(){
         $connection_string = array();
 
-        $type = $this->get_type();
+        $type = $this->getType();
         array_push($connection_string, $type);
 
         if($type == self::SQLite){
@@ -70,7 +78,8 @@ class ConnectionSettings
 	        );
         }
         
-        array_push($connection_string, ';charset=utf8');
+        array_push($connection_string, ';charset=');
+        array_push($connection_string, $this->getCharset());
         return implode($connection_string);
     }
 }

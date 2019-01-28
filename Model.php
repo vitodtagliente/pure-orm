@@ -4,14 +4,21 @@ namespace Pure\ORM;
 
 abstract class Model
 {
-	public function __construct(){
+	public function __construct(array $data = array(), bool $exists = false){
 		$schema = self::schema();
-        foreach($schema->properties() as $name => $descriptor){
-            $this->properties[$name] = $descriptor->get_default();
-            if($descriptor->is_primary())
-            {
+        foreach($schema->getProperties() as $name => $descriptor){
+            $this->properties[$name] = $descriptor->getDefaultValue();
+            if($descriptor->isPrimaryKey()){
                 array_push($this->identifiers, $name);
             }
+        }
+
+        if(!empty($data)){
+            foreach ($data as $name => $value) {
+                if(array_key_exists($name, $this->properties))
+                    $this->properties[$name] = $value;
+            }
+            $this->from_db = $exists;
         }
 	}
 
@@ -50,19 +57,25 @@ abstract class Model
         return isset($this->properties[$key]);
     }
 
+    // pulisce il modello
+    public function clear(){
+        $this->properties = array();
+        $this->from_db = false;
+    }
+
 	// ritorna la lista di tutti i campi del modello
-	public function columns() {
+	public function getColumns() {
         return array_keys($this->properties);
     }
 
     // ritorna il modello in formato array associativo
-    public function data(){
+    public function getData(){
     	return $this->properties;
     }
 
-    // ritorna la codifica json del modello
-    public function json(){
-    	return json_encode($this->properties);
+    // ritorna la codifica getJson del modello
+    public function getJson(){
+    	return getJson_encode($this->properties);
     }
 
     // ritorna true se è un modello esistente
@@ -70,7 +83,7 @@ abstract class Model
 		if($this->from_db)
 		{
             foreach ($this->identifiers as $id) {
-                if( !isset($this->properties[$id]) )
+                if(!isset($this->properties[$id]))
                     return false;
             }
             return true;
@@ -94,17 +107,16 @@ abstract class Model
     	{
 			// update
 			$query = new Query(static::table());
-			$query->update($this->data(), $this->getIdentifyCondition());
+			$query->update($this->getData(), $this->getIdentifyCondition());
 			return $query->execute();
     	}
     	else
     	{
     		// insert
 			$query = new Query(static::table());
-			$query->insert($this->data());
-            if($query->execute()){
+			$query->insert($this->getData());
+            if($query->execute())
                 $this->from_db = true;
-            }
             return $query->success();
     	}
     }
@@ -115,15 +127,17 @@ abstract class Model
 		{
 			$query = new Query(static::table());
 			$query->delete()->where($this->getIdentifyCondition());
-			return $query->execute();
+			if($query->execute())
+                $this->clear();
+            return $query->success();
 		}
         return false;
     }
 
 	private function sanitize(){
 		$schema = self::schema();
-        foreach($schema->properties() as $name => $descriptor){
-            if($descriptor->get_type() == 'BOOL')
+        foreach($schema->getProperties() as $name => $descriptor){
+            if($descriptor->getType() == 'BOOL')
 			{
 				if(isset($this->properties[$name]))
 					$this->properties[$name] = ($this->properties[$name] == 1)?true:false;
@@ -131,24 +145,12 @@ abstract class Model
         }
 	}
 
-    public static function find($where){
-        $classname = get_called_class();
-        $model = new $classname();
-
-        if(is_numeric($where))
-        {
-            $where = "id = '$where'";
-        }
-
+    public static function find(int $id){
 		$query = new Query(static::table());
-		$query->select()->where($where);
-		$pr = $query->execute();
+		$query->select()->where("id = '$id'")->model(get_called_class());
+		$model = $query->execute();
         if(!$query->success())
             return null;
-
-		$model->properties = $pr;
-		$model->from_db = true;
-		$model->sanitize();
         return $model;
     }
 
@@ -156,7 +158,7 @@ abstract class Model
         if(is_array($models)){
             $records = array();
             foreach ($models as $model) {
-                array_push($records, $model->data());
+                array_push($records, $model->getData());
             }
 			$query = new Query(static::table());
 			$query->insert($records);
@@ -166,26 +168,18 @@ abstract class Model
             return $models->save();
     }
 
-    public static function all($where = null, $statement = null){
-        $classname = get_called_class();
-        $temp = new $classname();
-        $models = array();
-
+    public static function all(){
 		$query = new Query(static::table());
-		$query->select()->all()->where($where)->statement($statement);
-		$result = $query->execute();
-        if(!empty($result))
-        {
-            foreach ($result as $record)
-            {
-                $model = new $classname();
-				$model->properties = $record;
-                $model->from_db = true;
-				$model->sanitize();
-                array_push($models, $model);
-            }
-        }
-        return $models;
+		$query->select()->all()->model(get_called_class());
+		return $query->execute();
+    }
+
+    public static function where(string $condition = null){
+        $query = new Query(static::table());
+        $query->select()->model(get_called_class());
+        if(!empty($condition))
+            $query->where($condition);
+        return $query;
     }
 
     public static function count(){

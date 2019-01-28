@@ -5,10 +5,11 @@ namespace Pure\ORM;
 class Schema {
 
 	private function __construct(){}
+	private function __destruct(){}
 
-	public static function create($model_class, $seed_schema = true){
+	public static function create(string $model_class, $seed_schema = true){
 		if(class_exists($model_class) && is_subclass_of($model_class, '\Pure\ORM\Model')){
-			$query = new Query($model_class::schema()->query());
+			$query = new Query($model_class::schema()->getQuery());
 			if($query->execute())
 			{
 				if($seed_schema)
@@ -24,7 +25,7 @@ class Schema {
 		}
 	}
 
-	public static function drop($model_class){
+	public static function drop(string $model_class){
 		if(class_exists($model_class) && is_subclass_of($model_class, '\Pure\ORM\Model')){
 			$query = new Query($model_class::table());
 			$query->drop();
@@ -37,7 +38,7 @@ class Schema {
 		}
 	}
 
-	public static function exists( $model_class ){
+	public static function exists(string $model_class){
 		if(class_exists($model_class) && is_subclass_of($model_class, '\Pure\ORM\Model')){
 			$query = new Query($model_class::table());
 			$query->exists();
@@ -50,7 +51,7 @@ class Schema {
 		}
 	}
 
-	public static function clear($model_class){
+	public static function clear(string $model_class){
 		if(class_exists($model_class) && is_subclass_of($model_class, '\Pure\ORM\Model')){
 			$query = new Query($model_class::table());
 			$query->delete();
@@ -63,7 +64,7 @@ class Schema {
 		}
 	}
 
-	public static function count($model_class, $condition = null){
+	public static function count(string $model_class, $condition = null){
 		if(class_exists($model_class) && is_subclass_of($model_class, '\Pure\ORM\Model')){
 			$query = new Query($model_class::table());
 			$query->count()->where($condition);
@@ -75,8 +76,6 @@ class Schema {
 			return false;
 		}
 	}
-
-	private function __destruct(){}
 }
 
 ?>

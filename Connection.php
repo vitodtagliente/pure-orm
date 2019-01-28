@@ -3,8 +3,7 @@
 namespace Pure\ORM;
 
 // Questa classe modella la connessione a database
-// vuole in input un array associativo di configurazione di connessione
-// oppure un ConnectionSettings
+// vuole in input un ConnectionSettings
 
 class Connection
 {
@@ -13,22 +12,15 @@ class Connection
     private $settings = null;
     private $connection_exception = null;
 
-    public function __construct($settings, $auto_connect = true)
+    public function __construct(ConnectionSettings $settings, $auto_connect = true)
     {
-        if(is_array($settings))
-            $this->settings = new ConnectionSettings($settings);
-
-        if(!is_a($this->settings, '\Pure\ORM\ConnectionSettings')){
-            var_dump($this->settings);
-            exit("\nInvalid ConnectionSettings");
-        }
-
+        $this->settings = $settings;
         if($auto_connect)
             $this->connect();
     }
 
     public function __destruct(){
-        if($this->is_connected())
+        if($this->isConnected())
             $this->disconnect();
     }
 
@@ -37,13 +29,13 @@ class Connection
         try
         {
             $this->context = new \PDO(
-                $this->settings->connection_string(),
+                $this->settings->getConnectionString(),
                 $this->settings->username,
                 $this->settings->password,
                 $this->settings->options
             );
-            $this->context->setAttribute( \PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION );
-            $this->context->setAttribute( \PDO::ATTR_DEFAULT_FETCH_MODE, \PDO::FETCH_ASSOC );
+            $this->context->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+            $this->context->setAttribute(\PDO::ATTR_DEFAULT_FETCH_MODE, \PDO::FETCH_ASSOC);
             return true;
         }
         catch(\PDOException $e)
@@ -61,25 +53,25 @@ class Connection
         $this->connection_exception = null;
     }
 
-    public function is_connected(){
+    public function isConnected(){
         return isset($this->context);
     }
 
-    public function error_message(){
+    public function getErrorMessage(){
         return $this->error;
     }
 
-    public function exception(){
+    public function getException(){
         return $this->$connection_exception;
     }
 
-    public function get_context(){
+    public function getPdo(){
         return $this->context;
     }
 
     // ritorna le informazioni di connessione
-    public function info(){
-        return $this->settings->info();
+    public function getSettings(){
+        return $this->settings;
     }
 }
 

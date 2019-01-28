@@ -23,6 +23,7 @@ class Query
     private $order = null;
     private $statement = null;
     private $order_asc = false;
+    private $model = null;
 
     private $success = false;
     private $error_message = null;
@@ -39,118 +40,164 @@ class Query
     }
 
     public function all(){
-        if($this->is_select())
+        if($this->isSelectQuery())
             $this->select_all = true;
         return $this;
     }
 
     public function count(){
-        $this->clear_type();
+        $this->clearType();
         $this->type = self::TYPE_COUNT;
         return $this;
     }
 
     public function delete(){
-        $this->clear_type();
+        $this->clearType();
         $this->type = self::TYPE_DELETE;
         return $this;
     }
 
     public function drop(){
-        $this->clear_type();
+        $this->clearType();
         $this->type = self::TYPE_DROP;
         return $this;
     }
 
     public function exists(){
-        $this->clear_type();
+        $this->clearType();
         $this->type = self::TYPE_EXISTS;
         return $this;
     }
 
-    public function insert($data){
+    public function insert(array $data){
         $this->data = $data;
-        $this->clear_type();
+        $this->clearType();
         $this->type = self::TYPE_INSERT;
         return $this;
     }
 
-    public function limit($max, $start = 0){
+    public function limit(int $max, int $start = 0){
         $this->limit = $max;
         $this->offset = $start;
         return $this;
     }
 
-    public function order($column, $order_asc = true){
+    public function model(string $name){
+        $this->model = $name;
+        return $this;
+    }
+
+    public function order(string $column, bool $order_asc = true){
         $this->order = $column;
         $this->order_asc = $order_asc;
         return $this;
     }
 
-    public function select($data = array()){
+    public function select(array $data = array()){
         $this->data = $data;
-        $this->clear_type();
+        $this->clearType();
         $this->type = self::TYPE_SELECT;
         return $this;
     }
 
-    public function statement($string){
+    public function statement(string $string){
         $this->statement = $string;
         return $this;
     }
 
-    public function update($data, $condition = null){
+    public function update(array $data, string $condition = null){
         $this->data = $data;
         $this->condition = $condition;
-        $this->clear_type();
+        $this->clearType();
         $this->type = self::TYPE_UPDATE;
         return $this;
     }
 
-    public function where($condition){
+    public function where(string $condition){
         $this->condition = $condition;
         return $this;
     }
 
-    private function clear_type(){
+    public function or(string $condition){
+        if(isset($this->condition) && !empty($this->condition))
+            $this->condition .= " OR $condition";
+        else $this->condition = $condition;
+        return $this;
+    }
+
+    public function and(string $condition){
+        if(isset($this->condition) && !empty($this->condition))
+            $this->condition .= " AND $condition";
+        else $this->condition = $condition;
+        return $this;
+    }
+
+    private function clearType(){
         $this->type = self::TYPE_NULL;
         $this->select_all = false;
     }
 
-    public function get_type(){ return $this->type; }
-    public function is_count(){ return $this->type == self::TYPE_COUNT; }
-    public function is_delete(){ return $this->type == self::TYPE_DELETE; }
-    public function is_drop(){ return $this->type == self::TYPE_DROP; }
-    public function is_exists(){ return $this->type == self::TYPE_EXISTS; }
-    public function is_insert(){ return $this->type == self::TYPE_INSERT; }
-    public function is_select(){ return $this->type == self::TYPE_SELECT; }
-    public function is_update(){ return $this->type == self::TYPE_UPDATE; }
-    public function is_valid(){ return $this->type != self::TYPE_NULL; }
+    public function getType(){ return $this->type; }
+    public function isCountQuery(){ return $this->type == self::TYPE_COUNT; }
+    public function isDeleteQuery(){ return $this->type == self::TYPE_DELETE; }
+    public function isDropQuery(){ return $this->type == self::TYPE_DROP; }
+    public function isExistsQuery(){ return $this->type == self::TYPE_EXISTS; }
+    public function isInsertQuery(){ return $this->type == self::TYPE_INSERT; }
+    public function isSelectQuery(){ return $this->type == self::TYPE_SELECT; }
+    public function isUpdateQuery(){ return $this->type == self::TYPE_UPDATE; }
+    public function isValid(){ return $this->type != self::TYPE_NULL; }
 
-    public function get_error(){ return $this->error_message; }
+    public function getErrorMessage(){ return $this->error_message; }
     public function success(){ return $this->success; }
 
-    public function execute($in_query = null){
+    public function execute(string $in_query = null){
         $db = Database::main();
-        if(isset($db) && $db->is_connected())
+        if(isset($db) && $db->isConnected())
         {
-            $pdo = $db->pdo();
-            $query = $this->get_query();
-            $values = $this->get_values();
+            $pdo = $db->getPdo();
+            $query = $this->getQuery();
+            $values = $this->getValues();
             try
             {
                 $stmt = $pdo->prepare($query);
                 $this->success = $stmt->execute($values);
                 if($this->success)
                 {
-                    if($this->is_select() || $this->is_count())
+                    if($this->isSelectQuery())
                     {
+                        $fetch = null;
                         if($this->select_all)
-                            return $stmt->fetchAll();
-                        $fetch = $stmt->fetch();
-                        if($this->is_count())
-                            return $fetch['COUNT(*)'];
+                            $fetch = $stmt->fetchAll();
+                        else $fetch = $stmt->fetch();
+
+                        // generate models
+                        if(isset($this->model))
+                        {
+                            $model_class = $this->model;
+                            if(class_exists($model_class) && is_subclass_of($model_class, '\Pure\ORM\Model'))
+                            {
+                                if($this->select_all)
+                                {
+                                    $models = array();
+                                    foreach ($fetch as $record) {
+                                        array_push($models, new $model_class($record, true));
+                                    }
+                                    return $models;
+                                }
+                                else 
+                                {
+                                    return new $model_class($fetch, true);
+                                }
+                            }
+                            else exit("$model_class is not a Pure\ORM\Model class");
+                        }
+                        // return the pure fetch
                         return $fetch;
+                    }
+                    else if($this->isCountQuery())
+                    {
+                        $fetch = $stmt->fetch();
+                        return $fetch['COUNT(*)'];
                     }
                 }
                 return $this->success;
@@ -165,45 +212,45 @@ class Query
         else exit("Cannot execute the query. Invalid Database connection.");
     }
 
-    private function get_query(){
-        if($this->is_count()){
+    private function getQuery(){
+        if($this->isCountQuery()){
             return QueryBuilder::count($this->table, $this->condition);
         }
-        else if($this->is_delete()){
+        else if($this->isDeleteQuery()){
             return QueryBuilder::delete($this->table, $this->condition);
         }
-        else if($this->is_drop()){
+        else if($this->isDropQuery()){
             return QueryBuilder::drop($this->table, $this->condition);
         }
-        else if($this->is_exists()){
+        else if($this->isExistsQuery()){
             return QueryBuilder::exists($this->table);
         }
-        else if($this->is_insert()){
+        else if($this->isInsertQuery()){
             // Are many records?
             if(isset($this->data[0]))
                 return QueryBuilder::insertMany($this->table, $this->data);
             return QueryBuilder::insert($this->table, $this->data);
         }
-        else if($this->is_select()){
+        else if($this->isSelectQuery()){
             return QueryBuilder::select(
                 $this->table,
                 $this->data,
                 $this->condition,
-                $this->get_statement()
+                $this->getStatement()
             );
         }
-        else if($this->is_update()){
+        else if($this->isUpdateQuery()){
             return QueryBuilder::update($this->table, $this->data, $this->condition);
         }
         else return $this->table;
     }
 
-    private function get_values(){
-        if($this->is_drop()) return array();
-        else if($this->is_delete()) return array();
-        else if($this->is_count()) return array();
-        else if($this->is_exists()) return array();
-        else if($this->is_insert()){
+    private function getValues(){
+        if($this->isDropQuery()) return array();
+        else if($this->isDeleteQuery()) return array();
+        else if($this->isCountQuery()) return array();
+        else if($this->isExistsQuery()) return array();
+        else if($this->isInsertQuery()){
             // Are many records?
             if(isset($this->data[0]))
             {
@@ -215,10 +262,10 @@ class Query
             }
             return $this->sanitize(array_values($this->data));           
         }
-        else if($this->is_select()){
+        else if($this->isSelectQuery()){
             return array();
         }
-        else if($this->is_update()){
+        else if($this->isUpdateQuery()){
             return $this->sanitize(array_values($this->data));
         }
         else return array();
@@ -232,7 +279,7 @@ class Query
         return $data;
     }
 
-    private function get_statement(){
+    private function getStatement(){
         $st = array($this->statement);
         $mode = 'ASC';
         if(isset($this->order)){
