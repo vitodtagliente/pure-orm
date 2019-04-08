@@ -145,9 +145,11 @@ abstract class Model
         }
 	}
 
-    public static function find(int $id){
+    public static function find($condition){
+        if(is_numeric($condition))
+            $condition = "id = '$condition'";
 		$query = new Query(static::table());
-		$query->select()->where("id = '$id'")->model(get_called_class());
+		$query->select()->where($condition)->model(get_called_class());
 		$model = $query->execute();
         if(!$query->success())
             return null;
