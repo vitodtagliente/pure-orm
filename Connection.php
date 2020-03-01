@@ -1,78 +1,98 @@
 <?php
 
-namespace Pure\ORM;
+/// Copyright (c) Vito Domenico Tagliente
+/// Database connection implementation
 
-// Questa classe modella la connessione a database
-// vuole in input un ConnectionSettings
+namespace Pure\ORM;
 
 class Connection
 {
-    private $context = null;
-    private $error = null;
-    private $settings = null;
-    private $connection_exception = null;
+    private $m_context = null;
+    private $m_error = null;
+    private $m_settings = null;
+    private $m_connectionException = null;
 
+    /// constructor
+    /// @param settings - The connection settings
+    /// @param auto_connect - Specify to auto connect if true
     public function __construct(ConnectionSettings $settings, $auto_connect = true)
     {
-        $this->settings = $settings;
-        if($auto_connect)
+        $this->m_settings = $settings;
+        if ($auto_connect) {
             $this->connect();
+        }
     }
 
-    public function __destruct(){
-        if($this->isConnected())
+    /// destructor
+    public function __destruct()
+    {
+        if ($this->isConnected()) {
             $this->disconnect();
+        }
     }
 
+    /// Perform a connection
+    /// @return - True if succeed
     public function connect()
     {
-        try
-        {
-            $this->context = new \PDO(
-                $this->settings->getConnectionString(),
-                $this->settings->username,
-                $this->settings->password,
-                $this->settings->options
+        try {
+            $this->m_context = new \PDO(
+                $this->m_settings->toConnectionString(),
+                $this->m_settings->username,
+                $this->m_settings->password,
+                $this->m_settings->options
             );
-            $this->context->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
-            $this->context->setAttribute(\PDO::ATTR_DEFAULT_FETCH_MODE, \PDO::FETCH_ASSOC);
+            $this->m_context->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+            $this->m_context->setAttribute(\PDO::ATTR_DEFAULT_FETCH_MODE, \PDO::FETCH_ASSOC);
             return true;
-        }
-        catch(\PDOException $e)
-        {
-            $this->context = null;
-            $this->error = $e->getMessage();
-            $this->connection_exception = $e;
+        } catch (\PDOException $e) {
+            $this->m_context = null;
+            $this->m_error = $e->getMessage();
+            $this->m_connectionException = $e;
             return false;
         }
     }
 
-    public function disconnect(){
-        $this->context = null;
-        $this->error = null;
-        $this->connection_exception = null;
+    /// Perform a disconnection
+    public function disconnect()
+    {
+        $this->m_context = null;
+        $this->m_error = null;
+        $this->m_connectionException = null;
     }
 
-    public function isConnected(){
-        return isset($this->context);
+    /// Check the status of the connection
+    /// @return - True if connected
+    public function isConnected()
+    {
+        return isset($this->m_context);
     }
 
-    public function getErrorMessage(){
-        return $this->error;
+    /// Retrieve the error message if any
+    /// @return - The error message
+    public function getErrorMessage()
+    {
+        return $this->m_error;
     }
 
-    public function getException(){
-        return $this->$connection_exception;
+    ///Retrieve the connection exception if any
+    /// @return - The connection exception
+    public function getException()
+    {
+        return $this->m_connectionException;
     }
 
-    public function getPdo(){
-        return $this->context;
+    /// Retrieve the PDO object
+    /// @return - The PDO context
+    public function getPDO()
+    {
+        return $this->m_context;
     }
 
-    // ritorna le informazioni di connessione
-    public function getSettings(){
-        return $this->settings;
+    /// Retrieve the connection settings
+    /// @return - The Connection Settings
+    public function getSettings()
+    {
+        return $this->m_settings;
     }
 }
-
-?>

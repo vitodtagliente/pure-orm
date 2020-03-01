@@ -1,8 +1,8 @@
 <?php
 
-/*
-Classe per l'alterazione degli schemi
-*/
+
+/// Copyright (c) Vito Domenico Tagliente
+/// Generic migrations interface
 
 namespace Pure\ORM;
 
@@ -10,5 +10,3 @@ class Migration
 {
 
 }
-
-?>

@@ -2,8 +2,6 @@
 
 namespace Pure\ORM;
 
-// singleton di accesso alla connessione di database
-
 class Database {
     // oggetto di connessione al database
     private $connection = null;
