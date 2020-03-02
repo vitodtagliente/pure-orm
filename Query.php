@@ -1,9 +1,14 @@
 <?php
 
+/// Copyright (c) Vito Domenico Tagliente
+///
+/// Query implementation
+
 namespace Pure\ORM;
 
 class Query
 {
+    /// Enums that represent the type of the query
     public const TYPE_NULL = null;
     public const TYPE_COUNT = 'COUNT';
     public const TYPE_DELETE = 'DELETE';
@@ -13,287 +18,462 @@ class Query
     public const TYPE_SELECT = 'SELECT';
     public const TYPE_UPDATE = 'UPDATE';
 
-    private $table = null;
-    private $type = self::TYPE_NULL;
-    private $select_all = false;
-    private $data = null;
-    private $condition = null;
-    private $limit = null;
-    private $offset = null;
-    private $order = null;
-    private $statement = null;
-    private $order_asc = false;
-    private $model = null;
+    /// component that define a query
+    /// used to build the query
 
-    private $success = false;
-    private $error_message = null;
+    /// The table to which the query refer
+    private $m_table = null;
+    /// the type of the query
+    private $m_type = self::TYPE_NULL;
+    /// Is this a select all query?
+    private $m_isSelectAll = false;
+    /// The query data
+    private $m_data = null;
+    /// The query condition
+    private $m_condition = null;
+    /// The query limit
+    private $m_limit = null;
+    /// The query offset
+    private $m_offset = null;
+    /// The query order
+    private $m_order = null;
+    /// The query statement
+    private $m_statement = null;
+    /// The query order asc
+    private $m_orderAsc = false;
+    /// The model of the query
+    private $m_model = null;
+    /// cache any error message
+    private $m_errorMessage = null;
 
-    private static $report_errors = false;
-
-    public static function error_reporting($value = true){
-        self::$report_errors = $value;
-    }
-
-    public function __construct($table){
-        if(!isset($table)) exit("Invalid query table reference.");
-        $this->table = $table;
-    }
-
-    public function all(){
-        if($this->isSelectQuery())
-            $this->select_all = true;
-        return $this;
-    }
-
-    public function count(){
-        $this->clearType();
-        $this->type = self::TYPE_COUNT;
-        return $this;
-    }
-
-    public function delete(){
-        $this->clearType();
-        $this->type = self::TYPE_DELETE;
-        return $this;
-    }
-
-    public function drop(){
-        $this->clearType();
-        $this->type = self::TYPE_DROP;
-        return $this;
-    }
-
-    public function exists(){
-        $this->clearType();
-        $this->type = self::TYPE_EXISTS;
-        return $this;
-    }
-
-    public function insert(array $data){
-        $this->data = $data;
-        $this->clearType();
-        $this->type = self::TYPE_INSERT;
-        return $this;
-    }
-
-    public function limit(int $max, int $start = 0){
-        $this->limit = $max;
-        $this->offset = $start;
-        return $this;
-    }
-
-    public function model(string $name){
-        $this->model = $name;
-        return $this;
-    }
-
-    public function order(string $column, bool $order_asc = true){
-        $this->order = $column;
-        $this->order_asc = $order_asc;
-        return $this;
-    }
-
-    public function select(array $data = array()){
-        $this->data = $data;
-        $this->clearType();
-        $this->type = self::TYPE_SELECT;
-        return $this;
-    }
-
-    public function statement(string $string){
-        $this->statement = $string;
-        return $this;
-    }
-
-    public function update(array $data, string $condition = null){
-        $this->data = $data;
-        $this->condition = $condition;
-        $this->clearType();
-        $this->type = self::TYPE_UPDATE;
-        return $this;
-    }
-
-    public function where(string $condition){
-        $this->condition = $condition;
-        return $this;
-    }
-
-    public function or(string $condition){
-        if(isset($this->condition) && !empty($this->condition))
-            $this->condition .= " OR $condition";
-        else $this->condition = $condition;
-        return $this;
-    }
-
-    public function and(string $condition){
-        if(isset($this->condition) && !empty($this->condition))
-            $this->condition .= " AND $condition";
-        else $this->condition = $condition;
-        return $this;
-    }
-
-    private function clearType(){
-        $this->type = self::TYPE_NULL;
-        $this->select_all = false;
-    }
-
-    public function getType(){ return $this->type; }
-    public function isCountQuery(){ return $this->type == self::TYPE_COUNT; }
-    public function isDeleteQuery(){ return $this->type == self::TYPE_DELETE; }
-    public function isDropQuery(){ return $this->type == self::TYPE_DROP; }
-    public function isExistsQuery(){ return $this->type == self::TYPE_EXISTS; }
-    public function isInsertQuery(){ return $this->type == self::TYPE_INSERT; }
-    public function isSelectQuery(){ return $this->type == self::TYPE_SELECT; }
-    public function isUpdateQuery(){ return $this->type == self::TYPE_UPDATE; }
-    public function isValid(){ return $this->type != self::TYPE_NULL; }
-
-    public function getErrorMessage(){ return $this->error_message; }
-    public function success(){ return $this->success; }
-
-    public function execute(string $in_query = null){
-        $db = Database::main();
-        if(isset($db) && $db->isConnected())
+    /// constructor
+    /// @param table - The table
+    public function __construct(string &$table)
+    {
+        if (empty($table))
         {
-            $pdo = $db->getPdo();
+            throw new \Exception("Invalid database table");
+        }
+        $this->m_table = $table;
+    }
+
+    /// Set this query as a select all type
+    /// valid only if this is a select query
+    /// @return - The query
+    public function all() : Query
+    {
+        if ($this->isSelectQuery())
+            $this->m_isSelectAll = true;
+        return $this;
+    }
+
+    /// Set this as a count query
+    /// @return - The query
+    public function count() : Query
+    {
+        $this->clearType();
+        $this->m_type = self::TYPE_COUNT;
+        return $this;
+    }
+
+    /// Set this as a delete query
+    /// @return - The query
+    public function delete() : Query
+    {
+        $this->clearType();
+        $this->m_type = self::TYPE_DELETE;
+        return $this;
+    }
+
+    /// Set this as a drop query
+    /// @return - The query
+    public function drop() : Query
+    {
+        $this->clearType();
+        $this->m_type = self::TYPE_DROP;
+        return $this;
+    }
+
+    /// Set this as an exists query
+    /// @return - The query
+    public function exists() : Query
+    {
+        $this->clearType();
+        $this->m_type = self::TYPE_EXISTS;
+        return $this;
+    }
+
+    /// Set this as an insert query
+    /// @return - The query
+    public function insert(array &$data) : Query
+    {
+        $this->m_data = $data;
+        $this->clearType();
+        $this->m_type = self::TYPE_INSERT;
+        return $this;
+    }
+
+    /// Set the limit of the query
+    /// @param max - The limit max
+    /// @param begin - The limit begin, default zero
+    /// @return - The query
+    public function limit(int $max, int $begin = 0) : Query
+    {
+        $this->m_limit = $max;
+        $this->m_offset = $begin;
+        return $this;
+    }
+
+    /// Set the model for the query
+    /// This will let to instantiate models based on the query results
+    /// usefull for select, select all queries
+    /// @param model - The model name
+    /// @return - The query
+    public function model(string &$modelClass) : Query
+    {
+        if(class_exists($modelClass) && is_subclass_of($modelClass, '\Pure\ORM\Model'))
+        {
+            $this->m_model = $modelClass;
+        }
+        else
+        {
+            throw new \Exception("The class $modelClass is not a valid \Pure\ORM\Model class");
+        }
+        return $this;
+    }
+
+    /// Set the order for a specific column
+    /// @param column - the column
+    /// @param asc - If the order is asc
+    public function order(string &$column, bool $asc = true) : Query
+    {
+        $this->m_order = $column;
+        $this->m_orderAsc = $asc;
+        return $this;
+    }
+
+    /// Set this as a select query
+    /// @param data - The data
+    /// @return - The query
+    public function select(array &$data = array()) : Query
+    {
+        $this->m_data = $data;
+        $this->clearType();
+        $this->m_type = self::TYPE_SELECT;
+        return $this;
+    }
+
+    /// Set the query statement
+    /// @param statement - The statement
+    /// @return - The query
+    public function statement(string &$statement) : Query
+    {
+        $this->m_statement = $statement;
+        return $this;
+    }
+
+    /// Set this as an update query
+    /// @param data - The data
+    /// @param condition - The condition
+    /// @return - The query
+    public function update(array &$data, string &$condition = null) : Query
+    {
+        $this->m_data = $data;
+        $this->m_condition = $condition;
+        $this->clearType();
+        $this->m_type = self::TYPE_UPDATE;
+        return $this;
+    }
+
+    /// Set the condition for the query
+    /// @param condition - The condition
+    /// @return - The query
+    public function where(string &$condition) : Query
+    {
+        $this->m_condition = $condition;
+        return $this;
+    }
+
+    /// Concatenate conditions
+    /// @param condition - The condition
+    /// @return - The query
+    public function or(string &$condition) : Query
+    {
+        if (isset($this->m_condition) && !empty($this->m_condition))
+            $this->m_condition .= " OR $condition";
+        else $this->m_condition = $condition;
+        return $this;
+    }
+
+    /// Concatenate conditions
+    /// @param condition - The condition
+    /// @return - The query
+    public function and(string &$condition) : Query
+    {
+        if (isset($this->m_condition) && !empty($this->m_condition))
+            $this->m_condition .= " AND $condition";
+        else $this->m_condition = $condition;
+        return $this;
+    }
+
+    /// Clear the type of the query
+    /// @return - The query
+    private function clearType() : Query
+    {
+        $this->m_type = self::TYPE_NULL;
+        $this->m_isSelectAll = false;
+        return $this;
+    }
+
+    /// Retrieve the type of the query
+    /// @return - The query type
+    public function getType() : string
+    {
+        return $this->m_type;
+    }
+
+    /// Check if this is a count query
+    /// @return - True if it is
+    public function isCountQuery() : bool
+    {
+        return $this->m_type == self::TYPE_COUNT;
+    }
+
+    /// Check if this is a delete query
+    /// @return - True if it is
+    public function isDeleteQuery() : bool
+    {
+        return $this->m_type == self::TYPE_DELETE;
+    }
+
+    /// Check if this is a drop query
+    /// @return - True if it is
+    public function isDropQuery() : bool
+    {
+        return $this->m_type == self::TYPE_DROP;
+    }
+
+    /// Check if this is an exists query
+    /// @return - True if it is
+    public function isExistsQuery() : bool
+    {
+        return $this->m_type == self::TYPE_EXISTS;
+    }
+
+    /// Check if this is an insert query
+    /// @return - True if it is
+    public function isInsertQuery() : bool
+    {
+        return $this->m_type == self::TYPE_INSERT;
+    }
+
+    /// Check if this is a select query
+    /// @return - True if it is
+    public function isSelectQuery() : bool
+    {
+        return $this->m_type == self::TYPE_SELECT;
+    }
+
+    /// Check if this is an update query
+    /// @return - True if it is
+    public function isUpdateQuery() : bool
+    {
+        return $this->m_type == self::TYPE_UPDATE;
+    }
+
+    /// Check if this is a valid query
+    /// @return - True if it is
+    public function isValid() : bool
+    {
+        return $this->m_type != self::TYPE_NULL;
+    }
+
+    public function getErrorMessage()
+    {
+        return $this->error_message;
+    }
+
+    public function success()
+    {
+        return $this->success;
+    }
+
+    /// Execute the query
+    /// @param inQuery - Extra query statements
+    /// @return - True if succeed
+    public function execute(string &$inQuery = null)
+    {
+        $db = Database::main();
+        if (isset($db) && $db->isConnected())
+        {
+            $this->m_errorMessage = null;
+            $pdo = $db->getPDO();
             $query = $this->getQuery();
             $values = $this->getValues();
             try
             {
                 $stmt = $pdo->prepare($query);
-                $this->success = $stmt->execute($values);
-                if($this->success)
+                if ($stmt->execute($values))
                 {
-                    if($this->isSelectQuery())
+                    if ($this->isSelectQuery())
                     {
                         $fetch = null;
-                        if($this->select_all)
+                        if ($this->m_isSelectAll)
                             $fetch = $stmt->fetchAll();
                         else $fetch = $stmt->fetch();
 
                         // generate models
-                        if(isset($this->model))
+                        if (isset($this->m_model))
                         {
-                            $model_class = $this->model;
-                            if(class_exists($model_class) && is_subclass_of($model_class, '\Pure\ORM\Model'))
+                            $model_class = $this->m_model;
+                            if ($this->m_isSelectAll)
                             {
-                                if($this->select_all)
+                                $models = array();
+                                foreach ($fetch as $record)
                                 {
-                                    $models = array();
-                                    foreach ($fetch as $record) {
-                                        array_push($models, new $model_class($record, true));
-                                    }
-                                    return $models;
+                                    array_push($models, new $model_class($record, true));
                                 }
-                                else 
-                                {
-                                    return new $model_class($fetch, true);
-                                }
+                                return $models;
                             }
-                            else exit("$model_class is not a Pure\ORM\Model class");
+                            else
+                            {
+                                return new $model_class($fetch, true);
+                            }
                         }
                         // return the pure fetch
                         return $fetch;
                     }
-                    else if($this->isCountQuery())
+                    else if ($this->isCountQuery())
                     {
                         $fetch = $stmt->fetch();
                         return $fetch['COUNT(*)'];
                     }
                 }
-                return $this->success;
+                return true;
             }
-            catch(\PDOException $e){
-                $this->error_message = $query."\n".$e->getMessage();
-                if(self::$report_errors)
-                    echo exit("Query error: " . $this->error_message);
-                return false;
+            catch (\PDOException $e)
+            {
+                $this->m_errorMessage = $query . "\n" . $e->getMessage();
             }
+            return false;
         }
-        else exit("Cannot execute the query. Invalid Database connection.");
+        else
+        {
+            throw new \Exception("Cannot execute the query. Invalid Database connection.");
+            return false;
+        }
     }
 
-    private function getQuery(){
-        if($this->isCountQuery()){
-            return QueryBuilder::count($this->table, $this->condition);
+    /// Retrieve the query in PDO format
+    /// @return - The query
+    private function getQuery() : string
+    {
+        if ($this->isCountQuery())
+        {
+            return QueryBuilder::count($this->m_table, $this->m_condition);
         }
-        else if($this->isDeleteQuery()){
-            return QueryBuilder::delete($this->table, $this->condition);
+        else if ($this->isDeleteQuery())
+        {
+            return QueryBuilder::delete($this->m_table, $this->m_condition);
         }
-        else if($this->isDropQuery()){
-            return QueryBuilder::drop($this->table, $this->condition);
+        else if ($this->isDropQuery())
+        {
+            return QueryBuilder::drop($this->m_table, $this->m_condition);
         }
-        else if($this->isExistsQuery()){
-            return QueryBuilder::exists($this->table);
+        else if ($this->isExistsQuery())
+        {
+            return QueryBuilder::exists($this->m_table);
         }
-        else if($this->isInsertQuery()){
+        else if ($this->isInsertQuery())
+        {
             // Are many records?
-            if(isset($this->data[0]))
-                return QueryBuilder::insertMany($this->table, $this->data);
-            return QueryBuilder::insert($this->table, $this->data);
+            if (isset($this->m_data[0]))
+                return QueryBuilder::insertMany($this->m_table, $this->m_data);
+            return QueryBuilder::insert($this->m_table, $this->m_data);
         }
-        else if($this->isSelectQuery()){
+        else if ($this->isSelectQuery())
+        {
             return QueryBuilder::select(
-                $this->table,
-                $this->data,
-                $this->condition,
+                $this->m_table,
+                $this->m_data,
+                $this->m_condition,
                 $this->getStatement()
             );
         }
-        else if($this->isUpdateQuery()){
-            return QueryBuilder::update($this->table, $this->data, $this->condition);
+        else if ($this->isUpdateQuery())
+        {
+            return QueryBuilder::update($this->m_table, $this->m_data, $this->m_condition);
         }
-        else return $this->table;
+        // is a raw query
+        return $this->m_table;
     }
 
-    private function getValues(){
-        if($this->isDropQuery()) return array();
-        else if($this->isDeleteQuery()) return array();
-        else if($this->isCountQuery()) return array();
-        else if($this->isExistsQuery()) return array();
-        else if($this->isInsertQuery()){
+    /// Retrieve the values used to set the PDO query format
+    /// @return - The values
+    private function getValues() : array
+    {
+        if ($this->isDropQuery()) return array();
+        else if ($this->isDeleteQuery()) return array();
+        else if ($this->isCountQuery()) return array();
+        else if ($this->isExistsQuery()) return array();
+        else if ($this->isInsertQuery())
+        {
             // Are many records?
-            if(isset($this->data[0]))
+            if (isset($this->m_data[0]))
             {
                 $values = array();
-                foreach ($this->data as $record) {
+                foreach ($this->m_data as $record)
+                {
                     $values = array_merge($values, $this->sanitize(array_values($record)));
                 }
                 return $values;
             }
-            return $this->sanitize(array_values($this->data));           
+            return $this->sanitize(array_values($this->m_data));
         }
-        else if($this->isSelectQuery()){
+        else if ($this->isSelectQuery())
+        {
             return array();
         }
-        else if($this->isUpdateQuery()){
-            return $this->sanitize(array_values($this->data));
+        else if ($this->isUpdateQuery())
+        {
+            return $this->sanitize(array_values($this->m_data));
         }
         else return array();
     }
 
-    private function sanitize($data = array()){
-        for ($i = 0; $i < count($data); $i++) {
-            if(is_bool($data[$i]))
-                $data[$i] = ($data[$i])?1:0;
+    /// Sanitize data
+    /// for example boolean are formatted as integers 1 or 0
+    /// @param data - The data to sanitize
+    /// @return - the sanitized data
+    private function sanitize(array &$data = array()) : array
+    {
+        for ($i = 0; $i < count($data); $i++)
+        {
+            if (is_bool($data[$i]))
+                $data[$i] = ($data[$i]) ? 1 : 0;
         }
         return $data;
     }
 
-    private function getStatement(){
-        $st = array($this->statement);
+    /// Retrieve the query statement
+    /// @return - The statement
+    private function getStatement() : string
+    {
+        $st = array($this->m_statement);
         $mode = 'ASC';
-        if(isset($this->order)){
-            $mode = ($this->order_asc)?'ASC':'DESC';
-            array_push($st, 'ORDER BY ' . $this->order . " $mode");
+        if (isset($this->m_order))
+        {
+            $mode = ($this->m_orderAsc) ? 'ASC' : 'DESC';
+            array_push($st, 'ORDER BY ' . $this->m_order . " $mode");
         }
-        if(isset($this->limit))
-            array_push($st, 'LIMIT ' . $this->limit . ' OFFSET ' . $this->offset);
+        if (isset($this->m_limit))
+            array_push($st, 'LIMIT ' . $this->m_limit . ' OFFSET ' . $this->m_offset);
         return implode(' ', $st);
     }
 
-    public function info(){
+    /// Debug the query
+    public function info() : void
+    {
         var_dump($this);
     }
-};
-
-?>
+}

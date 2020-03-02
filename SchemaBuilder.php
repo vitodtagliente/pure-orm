@@ -82,5 +82,3 @@ class SchemaBuilder
 		return implode($query);
 	}
 }
-
-?>

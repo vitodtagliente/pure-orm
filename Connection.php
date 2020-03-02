@@ -7,9 +7,13 @@ namespace Pure\ORM;
 
 class Connection
 {
+    /// represents the PDO
     private $m_context = null;
+    /// cache any connection error
     private $m_error = null;
+    /// connection settings
     private $m_settings = null;
+    /// store the exception
     private $m_connectionException = null;
 
     /// constructor
@@ -18,7 +22,8 @@ class Connection
     public function __construct(ConnectionSettings $settings, $auto_connect = true)
     {
         $this->m_settings = $settings;
-        if ($auto_connect) {
+        if ($auto_connect)
+        {
             $this->connect();
         }
     }
@@ -26,16 +31,18 @@ class Connection
     /// destructor
     public function __destruct()
     {
-        if ($this->isConnected()) {
+        if ($this->isConnected())
+        {
             $this->disconnect();
         }
     }
 
     /// Perform a connection
     /// @return - True if succeed
-    public function connect()
+    public function connect(): bool
     {
-        try {
+        try
+        {
             $this->m_context = new \PDO(
                 $this->m_settings->toConnectionString(),
                 $this->m_settings->username,
@@ -45,7 +52,9 @@ class Connection
             $this->m_context->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
             $this->m_context->setAttribute(\PDO::ATTR_DEFAULT_FETCH_MODE, \PDO::FETCH_ASSOC);
             return true;
-        } catch (\PDOException $e) {
+        }
+        catch (\PDOException $e)
+        {
             $this->m_context = null;
             $this->m_error = $e->getMessage();
             $this->m_connectionException = $e;
@@ -54,7 +63,7 @@ class Connection
     }
 
     /// Perform a disconnection
-    public function disconnect()
+    public function disconnect(): void
     {
         $this->m_context = null;
         $this->m_error = null;
@@ -63,35 +72,35 @@ class Connection
 
     /// Check the status of the connection
     /// @return - True if connected
-    public function isConnected()
+    public function isConnected(): bool
     {
         return isset($this->m_context);
     }
 
     /// Retrieve the error message if any
     /// @return - The error message
-    public function getErrorMessage()
+    public function getErrorMessage(): string
     {
         return $this->m_error;
     }
 
     ///Retrieve the connection exception if any
     /// @return - The connection exception
-    public function getException()
+    public function getException(): string
     {
         return $this->m_connectionException;
     }
 
     /// Retrieve the PDO object
     /// @return - The PDO context
-    public function getPDO()
+    public function getPDO(): \PDO
     {
         return $this->m_context;
     }
 
     /// Retrieve the connection settings
     /// @return - The Connection Settings
-    public function getSettings()
+    public function getSettings(): ConnectionSettings
     {
         return $this->m_settings;
     }

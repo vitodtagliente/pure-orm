@@ -29,7 +29,8 @@ abstract class Model
     // corrisponde al nome della classe del modello in minuscolo
     // resa al plurale
     // example: User -> users
-	public static function table(){
+	public static function table() : string
+    {
 		$path = explode('\\', get_called_class());
         return array_pop($path) . 's';
 	}

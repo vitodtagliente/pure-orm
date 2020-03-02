@@ -60,14 +60,14 @@ class ConnectionSettings
 
     /// Retrieve the json representation
     /// @return - The json format
-    public function toJson()
+    public function toJson() : string
     {
         return json_encode($this->m_properties);
     }
 
     /// Retrieve the current charset
     /// @return - The charset
-    private function getCharset()
+    private function getCharset() : string
     {
         if (isset($this->charset))
             return $this->charset;
@@ -76,7 +76,7 @@ class ConnectionSettings
 
     /// Retrieve the connection type
     /// @return - The connection type
-    public function getType()
+    public function getType() : string
     {
         if (isset($this->type)) return $this->type;
         return self::MySQL;
@@ -84,14 +84,14 @@ class ConnectionSettings
 
     /// Set the connection type
     /// @param type - The connection type
-    public function setType($type)
+    public function setType($type) : void
     {
         $this->type = $type;
     }
 
     /// Retrieve a PDO format connection string
     /// @return - The connection string
-    public function toConnectionString()
+    public function toConnectionString() : string
     {
         $connection_string = array();
 

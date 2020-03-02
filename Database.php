@@ -1,70 +1,100 @@
 <?php
 
+/// Copyright (c) Vito Domenico Tagliente
+/// Database implementation
+
 namespace Pure\ORM;
 
-class Database {
-    // oggetto di connessione al database
-    private $connection = null;
-    // singleton pattern
-    private static $instance;
-    // configurazione di collegamento al database
-    private static $connection_settings;
+class Database
+{
+    /// singleton pattern
+    private static $s_instance;
+    /// cached connection settings
+    /// used to perform the connection only if needed
+    private static $s_connectionSettings;
+    /// connection context
+    private $m_connection = null;
 
-    function __construct(Connection $connection)
+    /// constructor
+    /// @param connection - The connection
+    public function __construct(Connection $connection)
     {
-        $this->connection = $connection;
-        if($this->connection->isConnected() == false){
-            if($this->connection->connect() == false)
+        $this->m_connection = $connection;
+        if (!$this->m_connection->isConnected())
+        {
+            if ($this->m_connection->connect() == false)
             {
-                exit("Database connection failed!");
+                throw new \Exception("Database connection failed!");
             }
         }
     }
 
-    public static function prepare(ConnectionSettings $settings){
-    	self::$connection_settings = $settings;
+    /// destructor
+    public function __destruct()
+    {
+        $this->close();
     }
 
-    public static function main(){
-        if(!isset(self::$instance)){
-            if(isset(self::$connection_settings))
+    /// Prepare the connection configuration
+    /// @param settings - The connection settings
+    public static function prepare(ConnectionSettings $settings) : void
+    {
+        self::$s_connectionSettings = $settings;
+    }
+
+    /// singleton pattern
+    /// @return - The database instance
+    public static function main() : Database
+    {
+        if (!isset(self::$s_instance))
+        {
+            if (isset(self::$s_connectionSettings))
             {
-                self::$instance = new Database(new Connection(self::$connection_settings, false));
-                    self::$connection_settings = null;
+                self::$s_instance = new Database(new Connection(self::$s_connectionSettings, false));
+                self::$s_connectionSettings = null;
             }
-        	else exit("Database was not prepared with a valid ConnectionSettings");
+            else
+            {
+                throw new \Exception("Database was not prepared with a valid ConnectionSettings");
+            }
         }
-        return self::$instance;
+        return self::$s_instance;
     }
 
-    public static function bind($connection){
-        if(isset(self::$instance))
-            self::$instance->connection = $connection;
+    /// Used to bind a connection
+    /// @param connection - The connection
+    public static function bind($connection) : void
+    {
+        if (isset(self::$s_instance))
+            self::$instance->s_connection = $connection;
     }
 
-    public static function end(){
-    	if(isset(self::$instance))
-    		self::$instance->close();
+    public static function end() : void
+    {
+        if (isset(self::$instance))
+            self::$instance->close();
     }
 
-    public function isConnected(){
-        if(isset($this->connection))
-            return $this->connection->isConnected();
+    /// Check if the database is connected
+    /// @return - True if connected
+    public function isConnected() : bool
+    {
+        if (isset($this->m_connection))
+            return $this->m_connection->isConnected();
         return false;
     }
 
-    public function getPdo(){
-        return $this->connection->getPdo();
+    /// Retrieve the PDO
+    /// @return - The PDO object
+    public function getPDO() : \PDO
+    {
+        return $this->m_connection->getPDO();
     }
 
-    function close(){
-        if($this->isConnected())
-            $this->connection->disconnect();
-    }
-
-    function __destruct(){
-        $this->close();
+    /// Close the current connection
+    function close() : void
+    {
+        if ($this->isConnected())
+            $this->m_connection->disconnect();
     }
 }
-
-?>
