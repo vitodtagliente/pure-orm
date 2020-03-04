@@ -22,12 +22,12 @@ class QueryBuilder
     /// @param record - The associative array representing the object to insert
     /// @return - The query in PDO format
     /// INSERT INTO table (column1, column2, column3,...) VALUES (?, ?, ?, ...)
-    public static function insert(string &$table, array &$record) : string
+    public static function insert(string $table, array &$record) : string
     {
         if(!(array_keys($record) !== range(0, count($record) - 1)))
         {
             // the record is not an associative array
-            return null;
+            return '';
         }
 
         $query = array("INSERT INTO $table");
@@ -44,13 +44,13 @@ class QueryBuilder
     /// @param records - The list of object to insert
     /// @return - The query in PDO format
     /// INSERT INTO table (column1, column2, column3,...) VALUES (?, ?, ?, ...), ..., (?, ?, ?, ...)
-    public static function insertMany(string &$table, array &$records) : string
+    public static function insertMany(string $table, array &$records) : string
     {
         $count = count($records);
         if ($count <= 0)
         {
             // The array is empty
-            return null;
+            return '';
         }
 
         $query = array("INSERT INTO $table");
@@ -59,7 +59,7 @@ class QueryBuilder
         if(!(array_keys($record) !== range(0, count($record) - 1)))
         {
             // the record is not an associative array
-            return null;
+            return '';
         }
 
         array_push($query, ' (' . implode(', ', array_keys($record)) . ') VALUES ');
@@ -74,18 +74,18 @@ class QueryBuilder
     /// @param condition - The condition, if any
     /// @return - The query in PDO format
     /// UPDATE table SET column1=?, column2=?, ... WHERE condition
-    public static function update(string &$table, array &$record, string &$condition) : string
+    public static function update(string $table, array &$record, string $condition) : string
     {
         if(!(array_keys($record) !== range(0, count($record) - 1)))
         {
             // the record is not an associative array
-            return null;
+            return '';
         }
 
         if (empty($condition))
         {
             // The condition cannot be empty
-            return null;
+            return '';
         }
 
         $query = array("UPDATE $table SET ");
@@ -101,16 +101,16 @@ class QueryBuilder
     /// @param statement - The statement, if any
     /// SELECT column_name(s) FROM table WHERE condition statement
     public static function select(
-        string &$table,
+        string $table,
         array &$fields = array(),
-        string &$condition = null,
-        string &$statement = null) : string
+        ?string $condition = null,
+        ?string $statement = null) : string
     {
         $query = array('SELECT ');
         array_push($query, (empty($fields) ? '*' : implode(', ', $fields)));
         array_push($query, " FROM $table");
-        array_push($query, (isset($condition)) ? " WHERE $condition" : '');
-        array_push($query, (isset($statement)) ? " $statement" : '');
+        array_push($query, (!empty($condition)) ? " WHERE $condition" : '');
+        array_push($query, (!empty($statement)) ? " $statement" : '');
         return implode($query);
     }
 
@@ -119,7 +119,7 @@ class QueryBuilder
     /// @param condition - The condition, if any
     /// @return - The query
     /// DELETE FROM table WHERE condition
-    public static function delete(string &$table, string &$condition = null) : string
+    public static function delete(string $table, ?string $condition = null) : string
     {
         $query = array("DELETE FROM $table ");
         array_push($query, (isset($condition)) ? " WHERE $condition" : '');
@@ -130,7 +130,7 @@ class QueryBuilder
     /// @param table - The table
     /// @param condition - The condition, if any
     /// @return - The query
-    public static function count(string &$table, string &$condition = null) : string
+    public static function count(string $table, ?string $condition = null) : string
     {
         $query = array("SELECT COUNT(*) FROM $table");
         if (!empty($condition))
@@ -143,7 +143,7 @@ class QueryBuilder
     /// Generate the query able to drop a table
     /// @param table - The table
     /// @return - The query
-    public static function drop(string &$table) : string
+    public static function drop(string $table) : string
     {
         return "DROP TABLE IF EXISTS $table";
     }
@@ -151,7 +151,7 @@ class QueryBuilder
     /// Generate the query that check if a table exists
     /// @param table - The table
     /// @return - The query
-    public static function exists(string &$table) : string
+    public static function exists(string $table) : string
     {
         return "SELECT 1 FROM $table LIMIT 1";
     }

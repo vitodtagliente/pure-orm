@@ -6,8 +6,6 @@
 
 namespace Pure\ORM;
 
-use mysql_xdevapi\Exception;
-
 class Schema
 {
     /// constructor
@@ -28,7 +26,7 @@ class Schema
     {
         if (class_exists($modelClass) && is_subclass_of($modelClass, '\Pure\ORM\Model'))
         {
-            $rawQuery = $modelClass::schema()->getQuery();
+            $rawQuery = $modelClass::schema()->toQuery();
             $query = new Query($rawQuery);
             if ($query->execute())
             {
@@ -42,7 +40,7 @@ class Schema
         }
         else
         {
-            throw new Exception("$modelClass is not a Pure\ORM\Model class");
+            throw new \Exception("$modelClass is not a Pure\ORM\Model class");
             return false;
         }
     }
@@ -50,7 +48,7 @@ class Schema
     /// Drop a table
     /// @param table - the table to drop
     /// @return - true if succeed
-    public static function drop(string &$table): bool
+    public static function drop(string $table): bool
     {
         $query = new Query($table);
         $query->drop();
@@ -60,7 +58,7 @@ class Schema
     /// Check if a table exists
     /// @param table - The table
     /// @return - true if exists
-    public static function exists(string &$table): bool
+    public static function exists(string $table): bool
     {
         $query = new Query($table);
         $query->exists();
@@ -70,7 +68,7 @@ class Schema
     /// Remove all the rows of a given table
     /// @param table - The table
     /// @return - true if succeed
-    public static function clear(string &$table): bool
+    public static function clear(string $table): bool
     {
         $query = new Query($table);
         $query->delete();
@@ -81,10 +79,14 @@ class Schema
     /// @param table - The table
     /// @param condition - The condition, if any
     /// @return - The count of rows
-    public static function count(string &$table, string &$condition = null): integer
+    public static function count(string $table, ?string $condition = null): integer
     {
         $query = new Query($table);
-        $query->count()->where($condition);
+        $query->count();
+        if(!empty($condition))
+        {
+            $query->where($condition);
+        }
         return $query->execute();
     }
 }

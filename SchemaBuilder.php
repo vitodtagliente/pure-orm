@@ -1,84 +1,170 @@
 <?php
 
-/*
-Questa classe permette di definire,
-via codice, la struttura su database con cui
-andare a definire la tabella del modello specificato.
-*/
+/// Copyright (c) Vito Domenico Tagliente
+///
+/// This class lets to define database table using the code first approach
 
 namespace Pure\ORM;
 
 class SchemaBuilder
 {
-	private $table = null;
-	private $properties = array();
-	private $composite_primary = array();
+    /// The database table name
+    private string $m_table;
+    /// The properties
+    private array $m_properties = array();
+    /// If the primary key is defined by multiple fields
+    private array $m_compositeKeys = array();
 
-	public function __construct($tablename){
-		$this->table = $tablename;
-	}
+    /// constructor
+    /// @param tablename - The table name
+    public function __construct(string $tablename)
+    {
+        $this->m_table = $tablename;
+    }
 
-	public function __destruct(){}
+    /// destructor
+    public function __destruct()
+    {
+    }
 
-	public function get($property){
-		if(array_key_exists($property, $this->properties)){
-			return $this->properties[$property];
-		}
-		return null;
-	}
+    /// Retrieve a schema property
+    /// @param name - The name of the property
+    /// @return - The property
+    public function get(string $name) : SchemaPropertyDescriptor
+    {
+        if (array_key_exists($name, $this->m_properties))
+        {
+            return $this-m_>properties[$name];
+        }
+        return null;
+    }
 
-	public function add($property ,$type){
-		if(!array_key_exists($property, $this->properties)){
-			$this->properties[$property] = new SchemaPropertyDescriptor($property, $type);
-		}
-		return $this->properties[$property];
-	}
+    /// Add a property to the schema
+    /// @param name - The name of the property
+    /// @param type - The type of the property
+    /// @return - The property
+    public function add(string $name, string $type) : SchemaPropertyDescriptor
+    {
+        if (!array_key_exists($name, $this->m_properties))
+        {
+            $this->m_properties[$name] = new SchemaPropertyDescriptor($name, $type);
+        }
+        return $this->m_properties[$name];
+    }
 
-	public function id($name = 'id'){ return $this->integer($name)->primary()->increments(); }
+    /// Add the id field to the schema
+    /// @param name - The name of the field
+    /// @return - The Schema Builder
+    public function id(string $name = 'id') : SchemaBuilder
+    {
+        return $this->integer($name)->primary()->increments();
+    }
 
-	public function boolean($name){ return $this->add($name, 'BOOL'); }
+    /// Add a boolean field to the schema
+    /// @param name - The name of the field
+    /// @return - The Schema Builder
+    public function boolean(string $name) : SchemaBuilder
+    {
+        return $this->add($name, SchemaPropertyDescriptor::TYPE_BOOL);
+    }
 
-	public function integer($name){ return $this->add($name, 'INT'); }
+    /// Add an integer field to the schema
+    /// @param name - The name of the field
+    /// @return - The Schema Builder
+    public function integer(string $name) : SchemaBuilder
+    {
+        return $this->add($name, SchemaPropertyDescriptor::TYPE_INT);
+    }
 
-	public function float($name){ return $this->add($name, 'FLOAT'); }
+    /// Add a float field to the schema
+    /// @param name - The name of the field
+    /// @return - The Schema Builder
+    public function float(string $name) : SchemaBuilder
+    {
+        return $this->add($name, SchemaPropertyDescriptor::TYPE_FLOAT);
+    }
 
-	public function char($name, $size = 30){ return $this->add($name, "VARCHAR($size)"); }
+    /// Add a char field to the schema
+    /// @param name - The name of the field
+    /// @param size - The size of the char field
+    /// @return - The Schema Builder
+    public function char(string $name, int $size = 30) : SchemaBuilder
+    {
+        return $this->add($name, SchemaPropertyDescriptor::TYPE_VARCHAR . "($size)");
+    }
 
-	public function text($name){ return $this->add($name, 'TEXT'); }
+    /// Add a text field to the schema
+    /// @param name - The name of the field
+    /// @return - The Schema Builder
+    public function text(string $name) : SchemaBuilder
+    {
+        return $this->add($name, SchemaPropertyDescriptor::TYPE_TEXT);
+    }
 
-	public function date($name){ return $this->add($name, 'DATE'); }
+    /// Add a date field to the schema
+    /// @param name - The name of the field
+    /// @return - The Schema Builder
+    public function date(string $name) : SchemaBuilder
+    {
+        return $this->add($name, SchemaPropertyDescriptor::TYPE_DATE);
+    }
 
-	public function time($name){ return $this->add($name, 'TIME'); }
+    /// Add a time field to the schema
+    /// @param name - The name of the field
+    /// @return - The Schema Builder
+    public function time(string $name) : SchemaBuilder
+    {
+        return $this->add($name, SchemaPropertyDescriptor::TYPE_TIME);
+    }
 
-	public function datetime($name){ return $this->add($name, 'DATETIME'); }
+    /// Add a datetime field to the schema
+    /// @param name - The name of the field
+    /// @return - The Schema Builder
+    public function datetime(string $name) : SchemaBuilder
+    {
+        return $this->add($name, SchemaPropertyDescriptor::TYPE_DATETIME);
+    }
 
-	public function timestamps(){ $this->datetime('created_at'); $this->datetime('updated_at');	}
+    /// Add a timestamps field to the schema
+    /// @return - The Schema Builder
+    public function timestamps() : SchemaBuilder
+    {
+        return $this->datetime('created_at')->datetime('updated_at');
+    }
 
-	// make a composite primary key
-	public function primary($names = array()){
-		// TODO: chiave primaria composta
-	}
+    // make a composite primary key
+    public function primary($names = array())
+    {
+        // TODO: chiave primaria composta
+    }
 
-	// ritorna il nome di tutte le properties
-	public function getNames(){
-		return array_keys($this->properties);
-	}
+    /// Retrieve the name of all properties
+    /// @return - The array of the property names
+    public function getNames() : array
+    {
+        return array_keys($this->m_properties);
+    }
 
-	// ritorna tutte le proprietà dello schema
-	public function getProperties(){
-		return $this->properties;
-	}
+    /// Retrieve the properties of the schema
+    /// @return - The array of properties
+    public function getProperties() : array
+    {
+        return $this->m_properties;
+    }
 
-	public function getQuery(){
-		$query = array();
-		array_push($query, "CREATE TABLE " . $this->table . " (");
-		$comma = '';
-		foreach($this->properties as $name => $descriptor)
-		{
-			array_push($query, "$comma\n\t" . $descriptor->getQueryStatements($this->table));
-			$comma = ',';
-		}
-		array_push($query, "\n)");
-		return implode($query);
-	}
+    /// Generate the query able to create the schema
+    /// @return - The query
+    public function toQuery() : string
+    {
+        $query = array();
+        array_push($query, "CREATE TABLE " . $this->m_table . " (");
+        $comma = '';
+        foreach ($this->m_properties as $name => $descriptor)
+        {
+            array_push($query, "$comma\n\t" . $descriptor->toQuery($this->m_table));
+            $comma = ',';
+        }
+        array_push($query, "\n)");
+        return implode($query);
+    }
 }

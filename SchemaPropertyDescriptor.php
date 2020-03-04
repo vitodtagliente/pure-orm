@@ -1,96 +1,195 @@
 <?php
 
-/*
-Questa classe permette la descrizione 
-delle proprietà di un modello.
-Tali caratteristiche varranno poi utilizzate
-al fine di permettere:
-- la generazione del codice SQL per la definizione
-  dello schema del modello
-- Gestire la validazione sul modello stesso
-*/
+/// Copyright (c) Vito Domenico Tagliente
+///
+/// Schema property implementation
 
 namespace Pure\ORM;
 
 class SchemaPropertyDescriptor
 {
-	private $name = null;
-	private $type = null;
-	private $default_value = null;
-	private $auto_increments = false;
-	private $nullable = false;
-	private $primary = false;
-	private $unique = false;
-	private $unsigned = false;
-	private $foreign = false;
-	private $foreign_class = null;
-	private $foreign_property = null;
+    public const TYPE_BOOL = 'BOOL';
+    public const TYPE_DATE = 'DATE';
+    public const TYPE_DATETIME = 'DATETIME';
+    public const TYPE_FLOAT = 'FLOAT';
+    public const TYPE_INT = 'INT';
+    public const TYPE_TEXT = 'TEXT';
+    public const TYPE_TIME = 'TIME';
+    public const TYPE_VARCHAR = 'VARCHAR';
 
-	public function __construct($name, $type){
-		$this->name = $name;
-		$this->type = $type;
-	}
+    /// The name of the property
+    private string $m_name;
+    /// The type of the property
+    private string $m_type;
+    /// The default value
+    private $m_defaultValue = null;
+    /// Is it an auto increment field?
+    private bool $m_isAutoIncrements = false;
+    /// Is it nullable?
+    private bool $m_isNullable = false;
+    /// Is it a primary key?
+    private bool $m_isPrimary = false;
+    /// Is it unique?
+    private bool $m_isUnique = false;
+    /// Is is unique?
+    private bool $m_isUnsigned = false;
+    /// Is is a foreign key?
+    private bool $m_isForeign = false;
+    /// The foreign key class
+    private string $m_foreignClass;
+    /// The foreign property
+    private string $m_foreignProperty;
 
-	public function __destruct(){}
+    /// constructor
+    public function __construct(string $name, string $type)
+    {
+        $this->m_name = $name;
+        $this->m_type = $type;
+    }
 
-	public function default($value){ $this->default_value = $value; return $this; }
+    /// destructor
+    public function __destruct()
+    {
+    }
 
-	public function increments(){ $this->auto_increments = true; return $this; }
+    /// Set the default value
+    /// @param value - The default value
+    /// @return - The property descriptor
+    public function default($value) : SchemaPropertyDescriptor
+    {
+        $this->m_defaultValue = $value;
+        return $this;
+    }
 
-	public function nullable(){ $this->nullable = true; return $this; }
+    /// Set it as auto increments
+    /// @return - The property descriptor
+    public function increments() : SchemaPropertyDescriptor
+    {
+        $this->m_isAutoIncrements = true;
+        return $this;
+    }
 
-	public function primary(){ $this->primary = true; return $this; }
+    /// Set as a nullable property
+    /// @return - The property descriptor
+    public function nullable() : SchemaPropertyDescriptor
+    {
+        $this->m_isNullable = true;
+        return $this;
+    }
 
-	public function unique(){ $this->unique = true; return $this;	}
+    /// Set as a primary key property
+    /// @return - The property descriptor
+    public function primary() : SchemaPropertyDescriptor
+    {
+        $this->m_isPrimary = true;
+        return $this;
+    }
 
-	public function unsigned(){ $this->unsigned = true; return $this; }
+    /// Set as a unique property
+    /// @return - The property descriptor
+    public function unique() : SchemaPropertyDescriptor
+    {
+        $this->m_isUnique = true;
+        return $this;
+    }
 
-	public function link(string $model_class, $property = 'id'){
-		if(class_exists($model_class) && is_subclass_of($model_class, '\Pure\ORM\Model') && isset($property))
-		{
-			$this->foreign = true;
-			$this->foreign_class = $model_class::table();
-			$this->foreign_property = $property;
-		}
-		return $this;
-	}
+    /// Set as an unsigned property
+    /// @return - The property descriptor
+    public function unsigned() : SchemaPropertyDescriptor
+    {
+        $this->m_isUnsigned = true;
+        return $this;
+    }
 
-	// ottieni il valore di default
-	public function getDefaultValue(){ return $this->default_value; }
+    /// Set as a foreign key
+    /// @param modelClass - The model class to link
+    /// @param propertyName - The property to link
+    /// @return - The property descriptor
+    public function link(string $modelClass, string $propertyName = 'id') : SchemaPropertyDescriptor
+    {
+        if (class_exists($modelClass)
+            && is_subclass_of($modelClass, '\Pure\ORM\Model')
+            && isset($propertyName))
+        {
+            $this->m_isForeign = true;
+            $this->m_foreignClass = $modelClass::table();
+            $this->m_foreignProperty = $propertyName;
+        }
+        return $this;
+    }
 
-	// ritorna true, se la proprietà è una chiave primaria
-	public function isPrimaryKey(){ return $this->primary; }
+    /// Get the default value
+    /// @return - The default value
+    public function getDefaultValue()
+    {
+        return $this->m_defaultValue;
+    }
 
-	// ritorna il tipo
-	public function getType(){ return $this->type; }
+    /// Check if it is a primary key
+    /// @return  - True if it is
+    public function isPrimaryKey() : bool
+    {
+        return $this->m_isPrimary;
+    }
 
-	// query statement generation
-	public function getQueryStatements($table){
-		// field declaration
-		$query = array();
-		array_push($query, $this->name . ' ' . $this->type);
-		if($this->nullable == false)
-			array_push($query, ' NOT NULL');
-		else array_push($query, ' NULL');
-		if(isset($this->default_value)){
-			$value = $this->default_value;
-			if($this->type == 'BOOL')
-				$value = ($this->default_value)?1:0;
-			array_push($query, " DEFAULT '$value'");
-		}
-		if($this->auto_increments && $this->type == 'INT')
-			array_push($query, ' AUTO_INCREMENT');
-		// constraints
-		if($this->primary)
-			array_push($query, ",\n\t" . 'CONSTRAINT PK_' . $this->name . ' PRIMARY KEY (' . $this->name . ')');
-		if($this->unique)
-			array_push($query, ",\n\t" . 'CONSTRAINT UC_' . $this->name . ' UNIQUE KEY (' . $this->name . ')');
-		if($this->foreign)
-			array_push($query, ",\n\tCONSTRAINT FK_$table" . $this->foreign_class . '_' . $this->name .
-				' FOREIGN KEY (' . $this->name . ") REFERENCES " . $this->foreign_class . " (" . $this->foreign_property . ')');
+    /// Retrieve the type
+    /// @return - The type
+    public function getType() : string
+    {
+        return $this->m_type;
+    }
 
-		return implode($query);
-	}
+    /// Generate the query statement
+    /// @param table - The database table
+    /// @return - The query statement
+    public function toQuery(string $table) : string
+    {
+        // field declaration
+        $query = array();
+        array_push($query, $this->m_name . ' ' . $this->m_type);
+        array_push($query, ($this->m_isNullable) ? ' NULL' : ' NOT NULL');
+
+        if (isset($this->m_defaultValue))
+        {
+            $value = $this->m_defaultValue;
+            if ($this->m_type == self::TYPE_BOOL)
+            {
+                $value = ($this->m_defaultValue) ? 1 : 0;
+            }
+            array_push($query, " DEFAULT '$value'");
+        }
+
+        if ($this->m_isAutoIncrements && $this->m_type == self::TYPE_INT)
+        {
+            array_push($query, ' AUTO_INCREMENT');
+        }
+
+        // constraints
+        if ($this->m_isPrimary)
+        {
+            array_push(
+                $query,
+                ",\n\t" . 'CONSTRAINT PK_' . $this->m_name . ' PRIMARY KEY (' . $this->m_name . ')'
+            );
+        }
+
+        if ($this->m_isUnique)
+        {
+            array_push(
+                $query,
+                ",\n\t" . 'CONSTRAINT UC_' . $this->m_name . ' UNIQUE KEY (' . $this->m_name . ')'
+            );
+        }
+
+        if ($this->m_isForeign)
+        {
+            array_push(
+                $query,
+                ",\n\tCONSTRAINT FK_$table" . $this->m_foreignClass . '_' . $this->m_name .
+                ' FOREIGN KEY (' . $this->m_name . ") REFERENCES " . $this->m_foreignClass .
+                " (" . $this->m_foreignProperty . ')');
+        }
+
+        return implode($query);
+    }
 }
-
-?>

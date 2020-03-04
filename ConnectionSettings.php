@@ -10,18 +10,21 @@ namespace Pure\ORM;
 class ConnectionSettings
 {
     /// Connection Types
-    public const MySQL = 'mysql';
-    public const SQLite = 'sqlite';
+    public const TYPE_MySQL = 'mysql';
+    public const TYPE_SQLite = 'sqlite';
 
     /// settings properties
-    private $m_properties = array();
+    private array $m_properties;
 
     /// constructor
     /// @param data - The initial data
-    public function __construct(array $data = array())
+    public function __construct(?array $data)
     {
-        if (is_associative_array($data))
+        // check if it is an associative array
+        if (array_keys($data) !== range(0, count($data) - 1))
+        {
             $this->m_properties = $data;
+        }
     }
 
     /// destructor
@@ -33,7 +36,7 @@ class ConnectionSettings
     /// Retrieve a property
     /// @param name - The name of the property
     /// @return - The property value
-    public function __get($name)
+    public function __get(string $name)
     {
         if (array_key_exists($name, $this->m_properties))
             return $this->m_properties[$name];
@@ -43,7 +46,7 @@ class ConnectionSettings
     /// Set a property
     /// @param name - The name of the property
     /// @param value - The value
-    public function __set($name, $value)
+    public function __set(string $name, $value) : void
     {
         if (array_key_exists($name, $this->m_properties))
             $this->m_properties[$name] = $value;
@@ -53,7 +56,7 @@ class ConnectionSettings
     /// Check if a property is defined
     /// @param name - The name of the property
     /// @return - True if exists
-    public function __isset($name)
+    public function __isset(string $name) : bool
     {
         return isset($this->m_properties[$name]);
     }
@@ -79,26 +82,26 @@ class ConnectionSettings
     public function getType() : string
     {
         if (isset($this->type)) return $this->type;
-        return self::MySQL;
+        return self::TYPE_MySQL;
     }
 
     /// Set the connection type
     /// @param type - The connection type
-    public function setType($type) : void
+    public function setType(string $type) : void
     {
         $this->type = $type;
     }
 
     /// Retrieve a PDO format connection string
     /// @return - The connection string
-    public function toConnectionString() : string
+    public function toString() : string
     {
         $connection_string = array();
 
         $type = $this->getType();
         array_push($connection_string, $type);
 
-        if ($type == self::SQLite)
+        if ($type == self::TYPE_SQLite)
         {
             array_push($connection_string,
                 ':' . (isset($this->filename)) ? $this->filename : 'db.sqlite');

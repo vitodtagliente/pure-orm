@@ -8,12 +8,12 @@ namespace Pure\ORM;
 class Database
 {
     /// singleton pattern
-    private static $s_instance;
+    private static ?Database $s_instance;
     /// cached connection settings
     /// used to perform the connection only if needed
-    private static $s_connectionSettings;
+    private static ?ConnectionSettings $s_connectionSettings;
     /// connection context
-    private $m_connection = null;
+    private ?Connection $m_connection;
 
     /// constructor
     /// @param connection - The connection
@@ -44,7 +44,7 @@ class Database
 
     /// singleton pattern
     /// @return - The database instance
-    public static function main() : Database
+    public static function main() : ?Database
     {
         if (!isset(self::$s_instance))
         {
@@ -66,13 +66,17 @@ class Database
     public static function bind($connection) : void
     {
         if (isset(self::$s_instance))
+        {
             self::$instance->s_connection = $connection;
+        }
     }
 
     public static function end() : void
     {
         if (isset(self::$instance))
+        {
             self::$instance->close();
+        }
     }
 
     /// Check if the database is connected
@@ -80,7 +84,9 @@ class Database
     public function isConnected() : bool
     {
         if (isset($this->m_connection))
+        {
             return $this->m_connection->isConnected();
+        }
         return false;
     }
 
@@ -95,6 +101,8 @@ class Database
     function close() : void
     {
         if ($this->isConnected())
+        {
             $this->m_connection->disconnect();
+        }
     }
 }
