@@ -1,6 +1,5 @@
 <?php
 
-
 /// Copyright (c) Vito Domenico Tagliente
 /// Generic migrations interface
 

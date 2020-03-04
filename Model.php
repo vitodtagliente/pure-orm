@@ -1,26 +1,36 @@
 <?php
 
+/// Copyright (c) Vito Domenico Tagliente
+///
+/// ORM Model implementation
+
 namespace Pure\ORM;
 
 abstract class Model
 {
-    // insieme dei campi della tabella
-    private $properties = array();
-    // insieme dei campi che costituiscono la chiave
-    private $identifiers = array();
-    // specifica se il modello è di inserimento, perchè nuovo,
-    // o se è stato estratto da db
-    private $from_db = false;
+    /// List of properties
+    private array $m_properties;
+    /// List of properties that define the primary key
+    private array $m_identifiers;
+    /// Specify if this model has been retrieved by the DB
+    private bool $m_isFromDB = false;
+    /// All the schemad are cached
+    /// used for the properties validation
+    private static array $s_schemas;
 
-    public function __construct(array $data = array(), bool $exists = false)
+    /// constructor
+    /// @param data - The data of the model
+    /// @param exists - If fetched from the DB
+    public function __construct(?array $data = array(), ?bool $exists = false)
     {
+        // retrieve model info by its schema
         $schema = self::schema();
         foreach ($schema->getProperties() as $name => $descriptor)
         {
-            $this->properties[$name] = $descriptor->getDefaultValue();
+            $this->m_properties[$name] = $descriptor->getDefaultValue();
             if ($descriptor->isPrimaryKey())
             {
-                array_push($this->identifiers, $name);
+                array_push($this->m_identifiers, $name);
             }
         }
 
@@ -28,79 +38,112 @@ abstract class Model
         {
             foreach ($data as $name => $value)
             {
-                if (array_key_exists($name, $this->properties))
-                    $this->properties[$name] = $value;
+                if (array_key_exists($name, $this->m_properties))
+                    $this->m_properties[$name] = $value;
             }
-            $this->from_db = $exists;
+            $this->m_isFromDB = $exists;
         }
     }
 
+    /// destructor
     public function __destruct()
     {
     }
 
-    // ritorna il nome della tabella
-    // se non specificato
-    // corrisponde al nome della classe del modello in minuscolo
-    // resa al plurale
-    // example: User -> users
-    public static function table(): string
+    /// Retrieve the name of the table
+    /// @return - The table name
+    public static function table() : string
     {
         $path = explode('\\', get_called_class());
         return array_pop($path) . 's';
     }
 
-    public function __get($key)
+    // produce lo schema del modello
+    public static function schema()
     {
-        if (array_key_exists($key, $this->properties))
-            return $this->properties[$key];
+        $classname = get_called_class();
+        if (!array_key_exists($classname, self::$s_schemas))
+        {
+            $schema = new SchemaBuilder(static::table());
+            static::define($schema);
+            self::$s_schemas[$classname] = $schema;
+        }
+        return self::$s_schemas[$classname];
+    }
+
+    /// Used to define the schema of the model
+    abstract public static function define(SchemaBuilder &$schema) : void;
+
+    /// Used to insert default records to the database
+    public static function seed() : void
+    {
+
+    }
+
+    /// Retrieve a proeprty
+    /// @param name - The name of the property
+    /// @return - The property
+    public function __get(string $name)
+    {
+        if (array_key_exists($name, $this->m_properties))
+            return $this->m_properties[$name];
         return null;
     }
 
-    public function __set($key, $value)
+    /// Set a property
+    /// @param name - The name of the property
+    /// @param value - The value of the property
+    public function __set(string $name, $value) : void
     {
-        if (array_key_exists($key, $this->properties))
-            $this->properties[$key] = $value;
+        if (array_key_exists($name, $this->m_properties))
+            $this->properties[$name] = $value;
     }
 
-    public function __isset($key)
+    /// Check if a property exists
+    /// @param name - The name of the property
+    /// @return - True if exists
+    public function __isset($name) : bool
     {
-        return isset($this->properties[$key]);
+        return isset($this->m_properties[$name]);
     }
 
-    // pulisce il modello
-    public function clear()
+    /// Clear the model
+    public function clear() : void
     {
-        $this->properties = array();
-        $this->from_db = false;
+        $this->m_properties = array();
+        $this->m_isFromDB = false;
     }
 
-    // ritorna la lista di tutti i campi del modello
-    public function getColumns()
+    /// Retrieve the list of property names
+    /// @return - The list of propertie names
+    public function getPropertyNames() : array
     {
-        return array_keys($this->properties);
+        return array_keys($this->m_properties);
     }
 
-    // ritorna il modello in formato array associativo
-    public function getData()
+    /// Represent the model to the array representation
+    /// @return - The array format
+    public function toArray() : array
     {
-        return $this->properties;
+        return $this->m_properties;
     }
 
-    // ritorna la codifica getJson del modello
-    public function getJson()
+    /// Represent the model to the json format
+    /// @return - The json format
+    public function toJson() : string
     {
-        return getJson_encode($this->properties);
+        return getJson_encode($this->m_properties);
     }
 
-    // ritorna true se è un modello esistente
-    public function exists()
+    /// Check if this model was fetched from the Database
+    /// @return - True if it is
+    public function exists() : bool
     {
-        if ($this->from_db)
+        if ($this->m_isFromDB)
         {
-            foreach ($this->identifiers as $id)
+            foreach ($this->m_identifiers as $id)
             {
-                if (!isset($this->properties[$id]))
+                if (!isset($this->m_properties[$id]))
                     return false;
             }
             return true;
@@ -108,144 +151,148 @@ abstract class Model
         return false;
     }
 
-    private function getIdentifyCondition()
+    /// Build the identy condition used for SQL queries
+    /// @return - The identify condition
+    private function buildIdentifyCondition() : string
     {
         $value = array();
-        foreach ($this->identifiers as $id)
+        foreach ($this->m_identifiers as $id)
         {
-            array_push($value, "$id = '" . $this->properties[$id] . "'");
+            array_push($value, "$id = '" . $this->m_properties[$id] . "'");
         }
         return implode(' AND ', $value);
     }
 
-    // esegue l'insert se l'oggetto è nuovo
-    // altrimenti la update
-    public function save()
+    /// Save the model to the database if it does not exists
+    /// Otherwise an update will be performed
+    /// @return - True if succeed
+    public function save() : bool
     {
         if ($this->exists())
         {
             // update
             $query = new Query(static::table());
-            $query->update($this->getData(), $this->getIdentifyCondition());
+            $query->update($this->toArray(), $this->buildIdentifyCondition());
             return $query->execute();
         }
         else
         {
             // insert
             $query = new Query(static::table());
-            $query->insert($this->getData());
+            $query->insert($this->toArray());
             if ($query->execute())
-                $this->from_db = true;
+            {
+                $this->m_isFromDB = true;
+            }
             return $query->success();
         }
     }
 
-    // esegue la rimozione dell'elemento dal db
-    public function erase()
+    /// Remove this model from the database
+    /// @return - True if succeed
+    public function erase() : bool
     {
         if ($this->exists())
         {
             $query = new Query(static::table());
-            $query->delete()->where($this->getIdentifyCondition());
+            $query->delete()->where($this->buildIdentifyCondition());
             if ($query->execute())
+            {
                 $this->clear();
+            }
             return $query->success();
         }
         return false;
     }
 
-    private function sanitize()
+    /// Sanitize the properties
+    private function sanitize() : void
     {
         $schema = self::schema();
         foreach ($schema->getProperties() as $name => $descriptor)
         {
-            if ($descriptor->getType() == 'BOOL')
+            if ($descriptor->getType() == SchemaPropertyDescriptor::TYPE_BOOL)
             {
-                if (isset($this->properties[$name]))
-                    $this->properties[$name] = ($this->properties[$name] == 1) ? true : false;
+                if (isset($this->m_properties[$name]))
+                    $this->m_properties[$name] = ($this->m_properties[$name] == 1) ? true : false;
             }
         }
     }
 
-    public static function find($condition)
+    /// Find a model
+    /// @param condition - The condition
+    /// @return - The model
+    public static function find($condition) : ?Model
     {
         if (is_numeric($condition))
+        {
             $condition = "id = '$condition'";
+        }
+
         $query = new Query(static::table());
         $query->select()->where($condition)->model(get_called_class());
         $model = $query->execute();
-        if (!$query->success())
-            return null;
-        return $model;
+        if ($query->success())
+        {
+            return $model;
+        }
+        return null;
     }
 
-    public static function insert($models)
+    /// Insert model/models into the database
+    /// @param models - The list of model
+    /// @return - True if succeed
+    public static function insert(array &$models) : bool
     {
         if (is_array($models))
         {
             $records = array();
             foreach ($models as $model)
             {
-                array_push($records, $model->getData());
+                array_push($records, $model->toData());
             }
             $query = new Query(static::table());
             $query->insert($records);
             return $query->execute();
         }
         else
+        {
             return $models->save();
+        }
     }
 
-    public static function all()
+    /// Retrieve all the models
+    /// @return - The list of models
+    public static function all() : array
     {
         $query = new Query(static::table());
         $query->select()->all()->model(get_called_class());
         return $query->execute();
     }
 
-    public static function where(string $condition = null)
+    /// Retrieve the models that sutisfy a condition
+    public static function where(string $condition) : array
     {
         $query = new Query(static::table());
-        $query->select()->model(get_called_class());
+        $query->select()->all()->model(get_called_class());
         if (!empty($condition))
+        {
             $query->where($condition);
-        return $query;
+        }
+        return $query->execute();
     }
 
-    public static function count()
+    /// Retrieve the number of elements in the database
+    /// @param condition - The condition
+    /// @return - The count of records
+    public static function count(?string $condition = null) : int
     {
         $query = new Query(static::table());
         $query->count();
-        $result = $query->execute();
-        return $result;
-    }
-
-    // Gestione degli schemi.
-    // Per mantenere delle buone prestazioni
-    // mi salvo l'istanza degli schemi generati
-    // per tipologia di modello specificato.
-    private static $schemas = array();
-
-    // produce lo schema del modello
-    public static function schema()
-    {
-        $classname = get_called_class();
-        if (!array_key_exists($classname, self::$schemas))
+        if(!empty($condition))
         {
-            $schema = new SchemaBuilder(static::table());
-            static::define($schema);
-            self::$schemas[$classname] = $schema;
+            $query->where($condition);
         }
-        return self::$schemas[$classname];
-    }
-
-    // da derivare per la definizione dello schema
-    abstract public static function define($schema);
-
-    // sovrascrivere questa funzione per definire i seed per modello
-    // in fase di creazione dello schema
-    public static function seed()
-    {
-
+        return $query->execute();
     }
 }
