@@ -102,7 +102,7 @@ abstract class Model
     /// Check if a property exists
     /// @param name - The name of the property
     /// @return - True if exists
-    public function __isset($name) : bool
+    public function __isset(string $name) : bool
     {
         return isset($this->m_properties[$name]);
     }
