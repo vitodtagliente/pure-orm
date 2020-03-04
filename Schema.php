@@ -26,8 +26,7 @@ class Schema
     {
         if (class_exists($modelClass) && is_subclass_of($modelClass, '\Pure\ORM\Model'))
         {
-            $rawQuery = $modelClass::schema()->toQuery();
-            $query = new Query($rawQuery);
+            $query = new Query($modelClass::schema()->toQuery());
             if ($query->execute())
             {
                 if ($canSeed)
@@ -50,8 +49,8 @@ class Schema
     /// @return - true if succeed
     public static function drop(string $table): bool
     {
-        $query = new Query($table);
-        $query->drop();
+        $query = new Query();
+        $query->drop($table);
         return $query->execute();
     }
 
@@ -60,8 +59,8 @@ class Schema
     /// @return - true if exists
     public static function exists(string $table): bool
     {
-        $query = new Query($table);
-        $query->exists();
+        $query = new Query();
+        $query->exists($table);
         return $query->execute();
     }
 
@@ -70,8 +69,8 @@ class Schema
     /// @return - true if succeed
     public static function clear(string $table): bool
     {
-        $query = new Query($table);
-        $query->delete();
+        $query = new Query();
+        $query->delete($table);
         return $query->execute();
     }
 
@@ -81,8 +80,8 @@ class Schema
     /// @return - The count of rows
     public static function count(string $table, ?string $condition = null): integer
     {
-        $query = new Query($table);
-        $query->count();
+        $query = new Query();
+        $query->count($table);
         if(!empty($condition))
         {
             $query->where($condition);

@@ -171,15 +171,15 @@ abstract class Model
         if ($this->exists())
         {
             // update
-            $query = new Query(static::table());
-            $query->update($this->toArray(), $this->buildIdentifyCondition());
+            $query = new Query();
+            $query->update(static::table(), $this->toArray(), $this->buildIdentifyCondition());
             return $query->execute();
         }
         else
         {
             // insert
-            $query = new Query(static::table());
-            $query->insert($this->toArray());
+            $query = new Query();
+            $query->insert(static::table(), $this->toArray());
             if ($query->execute())
             {
                 $this->m_isFromDB = true;
@@ -194,8 +194,8 @@ abstract class Model
     {
         if ($this->exists())
         {
-            $query = new Query(static::table());
-            $query->delete()->where($this->buildIdentifyCondition());
+            $query = new Query();
+            $query->delete(static::table())->where($this->buildIdentifyCondition());
             if ($query->execute())
             {
                 $this->clear();
@@ -229,8 +229,8 @@ abstract class Model
             $condition = "id = '$condition'";
         }
 
-        $query = new Query(static::table());
-        $query->select()->where($condition)->model(get_called_class());
+        $query = new Query();
+        $query->select(static::table())->where($condition)->model(get_called_class());
         $model = $query->execute();
         if ($query->success())
         {
@@ -251,8 +251,8 @@ abstract class Model
             {
                 array_push($records, $model->toData());
             }
-            $query = new Query(static::table());
-            $query->insert($records);
+            $query = new Query();
+            $query->insert(static::table(), $records);
             return $query->execute();
         }
         else
@@ -265,16 +265,16 @@ abstract class Model
     /// @return - The list of models
     public static function all() : array
     {
-        $query = new Query(static::table());
-        $query->select()->all()->model(get_called_class());
+        $query = new Query();
+        $query->select(static::table())->all()->model(get_called_class());
         return $query->execute();
     }
 
     /// Retrieve the models that sutisfy a condition
     public static function where(string $condition) : array
     {
-        $query = new Query(static::table());
-        $query->select()->all()->model(get_called_class());
+        $query = new Query();
+        $query->select(static::table())->all()->model(get_called_class());
         if (!empty($condition))
         {
             $query->where($condition);
@@ -287,8 +287,8 @@ abstract class Model
     /// @return - The count of records
     public static function count(?string $condition = null) : int
     {
-        $query = new Query(static::table());
-        $query->count();
+        $query = new Query();
+        $query->count(static::table());
         if(!empty($condition))
         {
             $query->where($condition);

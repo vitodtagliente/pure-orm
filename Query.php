@@ -15,6 +15,7 @@ class Query
     public const TYPE_EXISTS = 'EXISTS';
     public const TYPE_INSERT = 'INSERT';
     public const TYPE_NULL = 'NULL';
+    public const TYPE_RAW = 'RAW';
     public const TYPE_SELECT = 'SELECT';
     public const TYPE_UPDATE = 'UPDATE';
 
@@ -47,16 +48,18 @@ class Query
     private $m_model = null;
     /// cache any error message
     private $m_errorMessage = null;
+    /// The raw query
+    private string $m_rawQuery;
 
     /// constructor
     /// @param table - The table
-    public function __construct(string $table)
+    public function __construct(?string $query = null)
     {
-        if (empty($table))
+        if (!empty($raw))
         {
-            throw new \Exception("Invalid database table");
+            $this->m_type = self::TYPE_RAW;
+            $this->m_rawQuery = $query;
         }
-        $this->m_table = $table;
     }
 
     /// Set this query as a select all type
@@ -73,46 +76,51 @@ class Query
 
     /// Set this as a count query
     /// @return - The query
-    public function count() : Query
+    public function count(string $table) : Query
     {
         $this->clear();
         $this->m_type = self::TYPE_COUNT;
+        $this->m_table = $table;
         return $this;
     }
 
     /// Set this as a delete query
     /// @return - The query
-    public function delete() : Query
+    public function delete(string $table) : Query
     {
         $this->clear();
         $this->m_type = self::TYPE_DELETE;
+        $this->m_table = $table;
         return $this;
     }
 
     /// Set this as a drop query
     /// @return - The query
-    public function drop() : Query
+    public function drop(string $table) : Query
     {
         $this->clear();
         $this->m_type = self::TYPE_DROP;
+        $this->m_table = $table;
         return $this;
     }
 
     /// Set this as an exists query
     /// @return - The query
-    public function exists() : Query
+    public function exists(string $table) : Query
     {
         $this->clear();
         $this->m_type = self::TYPE_EXISTS;
+        $this->m_table = $table;
         return $this;
     }
 
     /// Set this as an insert query
     /// @return - The query
-    public function insert(array &$data) : Query
+    public function insert(string $table, array &$data) : Query
     {
         $this->clear();
         $this->m_type = self::TYPE_INSERT;
+        $this->m_table = $table;
         $this->m_data = $data;
         return $this;
     }
@@ -160,11 +168,12 @@ class Query
     /// Set this as a select query
     /// @param data - The data
     /// @return - The query
-    public function select(?array $data = array()) : Query
+    public function select(string $table, ?array $data = array()) : Query
     {
-        $this->m_data = $data;
         $this->clear();
         $this->m_type = self::TYPE_SELECT;
+        $this->m_table = $table;
+        $this->m_data = $data;
         return $this;
     }
 
@@ -181,10 +190,11 @@ class Query
     /// @param data - The data
     /// @param condition - The condition
     /// @return - The query
-    public function update(array $data, ?string $condition = null) : Query
+    public function update(string $table, array $data, ?string $condition = null) : Query
     {
         $this->clear();
         $this->m_type = self::TYPE_UPDATE;
+        $this->m_table = $table;
         $this->m_data = $data;
         $this->m_condition = $condition;
         return $this;
@@ -239,6 +249,7 @@ class Query
         $this->m_isSelectAll = false;
         $this->m_hasLimit = false;
         $this->m_condition = '';
+        $this->m_rawQuery = '';
         return $this;
     }
 
@@ -264,9 +275,8 @@ class Query
     }
 
     /// Execute the query
-    /// @param inQuery - Extra query statements
     /// @return - True if succeed
-    public function execute(string &$inQuery = null)
+    public function execute()
     {
         $db = Database::main();
         if (isset($db) && $db->isConnected())
@@ -368,6 +378,9 @@ class Query
                 {
                     return QueryBuilder::update($this->m_table, $this->m_data, $this->m_condition);
                 }
+                break;
+            case self::TYPE_RAW:
+                return $this->m_rawQuery;
                 break;
             default:
                 return '';
