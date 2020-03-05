@@ -1,19 +1,21 @@
 <?php
 
 /// Copyright (c) Vito Domenico Tagliente
+///
 /// Database implementation
 
 namespace Pure\ORM;
 
 class Database
 {
-    /// singleton pattern
-    private static ?Database $s_instance;
+    /// connection context
+    private ?Connection $m_connection = null;
+
     /// cached connection settings
     /// used to perform the connection only if needed
-    private static ?ConnectionSettings $s_connectionSettings;
-    /// connection context
-    private ?Connection $m_connection;
+    private static ?ConnectionSettings $s_connectionSettings = null;
+    /// singleton pattern
+    private static ?Database $s_instance = null;
 
     /// constructor
     /// @param connection - The connection
@@ -90,9 +92,16 @@ class Database
         return false;
     }
 
+    /// Retrieve the current connection
+    /// @return - The connection
+    public function getConnection() : ?Connection
+    {
+        return $this->m_connection;
+    }
+
     /// Retrieve the PDO
     /// @return - The PDO object
-    public function getPDO() : \PDO
+    public function getPDO() : ?\PDO
     {
         return $this->m_connection->getPDO();
     }

@@ -49,7 +49,9 @@ class ConnectionSettings
     public function __set(string $name, $value) : void
     {
         if (array_key_exists($name, $this->m_properties))
+        {
             $this->m_properties[$name] = $value;
+        }
     }
 
     /// isset implementation

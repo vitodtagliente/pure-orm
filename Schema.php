@@ -1,6 +1,7 @@
 <?php
 
 /// Copyright (c) Vito Domenico Tagliente
+///
 /// Schema definition
 /// used to generate database table using the code first approach
 

@@ -1,6 +1,7 @@
 <?php
 
 /// Copyright (c) Vito Domenico Tagliente
+/// 
 /// This class helps to build queries
 
 namespace Pure\ORM;

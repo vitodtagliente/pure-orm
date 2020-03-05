@@ -1,6 +1,7 @@
 <?php
 
 /// Copyright (c) Vito Domenico Tagliente
+///
 /// Database connection implementation
 
 namespace Pure\ORM;
@@ -8,11 +9,11 @@ namespace Pure\ORM;
 class Connection
 {
     /// The PDO
-    private ?\PDO $m_PDO;
+    private ?\PDO $m_PDO = null;
+    /// connection settings
+    private ?ConnectionSettings $m_settings = null;
     /// cache any connection error
     private string $m_error;
-    /// connection settings
-    private ConnectionSettings $m_settings;
     /// store the exception
     private string $m_connectionException;
 
@@ -97,14 +98,14 @@ class Connection
 
     /// Retrieve the PDO object
     /// @return - The PDO context
-    public function getPDO(): \PDO
+    public function getPDO(): ?\PDO
     {
         return $this->m_PDO;
     }
 
     /// Retrieve the connection settings
     /// @return - The Connection Settings
-    public function getSettings(): ConnectionSettings
+    public function getSettings(): ?ConnectionSettings
     {
         return $this->m_settings;
     }

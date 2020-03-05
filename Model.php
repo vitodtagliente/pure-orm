@@ -14,6 +14,7 @@ abstract class Model
     private array $m_identifiers;
     /// Specify if this model has been retrieved by the DB
     private bool $m_isFromDB = false;
+
     /// All the schemad are cached
     /// used for the properties validation
     private static array $s_schemas;
@@ -214,7 +215,9 @@ abstract class Model
             if ($descriptor->getType() == SchemaPropertyDescriptor::TYPE_BOOL)
             {
                 if (isset($this->m_properties[$name]))
+                {
                     $this->m_properties[$name] = ($this->m_properties[$name] == 1) ? true : false;
+                }
             }
         }
     }
