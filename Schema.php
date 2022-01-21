@@ -79,7 +79,7 @@ class Schema
     /// @param table - The table
     /// @param condition - The condition, if any
     /// @return - The count of rows
-    public static function count(string $table, ?string $condition = null): integer
+    public static function count(string $table, ?string $condition = null): int
     {
         $query = new Query();
         $query->count($table);

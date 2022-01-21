@@ -23,7 +23,7 @@ class Query
     /// used to build the query
 
     /// The table to which the query refer
-    private string $m_table;
+    private string $m_table = '';
     /// the type of the query
     private string $m_type = self::TYPE_NULL;
     /// Is this a select all query?
@@ -31,13 +31,13 @@ class Query
     /// The query data
     private $m_data = null;
     /// The query condition
-    private string $m_condition;
+    private string $m_condition = '';
     /// Has the query a limit?
     private bool $m_hasLimit = false;
     /// The query limit
-    private int $m_limit;
+    private int $m_limit = 0;
     /// The query offset
-    private int $m_offset;
+    private int $m_offset = 0;
     /// The query order
     private $m_order = null;
     /// The query statement
@@ -49,13 +49,15 @@ class Query
     /// cache any error message
     private $m_errorMessage = null;
     /// The raw query
-    private string $m_rawQuery;
+    private string $m_rawQuery = '';
+
+    private bool $m_success = false;
 
     /// constructor
     /// @param table - The table
     public function __construct(?string $query = null)
     {
-        if (!empty($raw))
+        if (!empty($query))
         {
             $this->m_type = self::TYPE_RAW;
             $this->m_rawQuery = $query;
@@ -274,6 +276,13 @@ class Query
         return $this->error_message;
     }
 
+    /// Return the state of the query
+    /// @return - The true if succeeded
+    public function success() : bool
+    {
+        return $this->m_success;
+    }
+
     /// Execute the query
     /// @return - True if succeed
     public function execute()
@@ -288,7 +297,8 @@ class Query
             try
             {
                 $stmt = $pdo->prepare($query);
-                if ($stmt->execute($values))
+                $this->m_success = $stmt->execute($values);
+                if ($this->m_success)
                 {
                     if ($this->m_type == self::TYPE_SELECT)
                     {
@@ -300,6 +310,8 @@ class Query
                         // generate models
                         if (isset($this->m_model))
                         {
+                            if(is_array($fetch) == false) return null;
+
                             $model_class = $this->m_model;
                             if ($this->m_isSelectAll)
                             {
@@ -445,7 +457,7 @@ class Query
             $mode = ($this->m_orderAsc) ? 'ASC' : 'DESC';
             array_push($st, 'ORDER BY ' . $this->m_order . " $mode");
         }
-        if (isset($this->m_hasLimit))
+        if ($this->m_hasLimit)
         {
             array_push($st, 'LIMIT ' . $this->m_limit . ' OFFSET ' . $this->m_offset);
         }

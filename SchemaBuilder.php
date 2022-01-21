@@ -55,7 +55,7 @@ class SchemaBuilder
     /// Add the id field to the schema
     /// @param name - The name of the field
     /// @return - The Schema Builder
-    public function id(string $name = 'id') : SchemaBuilder
+    public function id(string $name = 'id') : SchemaPropertyDescriptor
     {
         return $this->integer($name)->primary()->increments();
     }
@@ -63,7 +63,7 @@ class SchemaBuilder
     /// Add a boolean field to the schema
     /// @param name - The name of the field
     /// @return - The Schema Builder
-    public function boolean(string $name) : SchemaBuilder
+    public function boolean(string $name) : SchemaPropertyDescriptor
     {
         return $this->add($name, SchemaPropertyDescriptor::TYPE_BOOL);
     }
@@ -71,7 +71,7 @@ class SchemaBuilder
     /// Add an integer field to the schema
     /// @param name - The name of the field
     /// @return - The Schema Builder
-    public function integer(string $name) : SchemaBuilder
+    public function integer(string $name) : SchemaPropertyDescriptor
     {
         return $this->add($name, SchemaPropertyDescriptor::TYPE_INT);
     }
@@ -79,7 +79,7 @@ class SchemaBuilder
     /// Add a float field to the schema
     /// @param name - The name of the field
     /// @return - The Schema Builder
-    public function float(string $name) : SchemaBuilder
+    public function float(string $name) : SchemaPropertyDescriptor
     {
         return $this->add($name, SchemaPropertyDescriptor::TYPE_FLOAT);
     }
@@ -88,7 +88,7 @@ class SchemaBuilder
     /// @param name - The name of the field
     /// @param size - The size of the char field
     /// @return - The Schema Builder
-    public function char(string $name, int $size = 30) : SchemaBuilder
+    public function char(string $name, int $size = 30) : SchemaPropertyDescriptor
     {
         return $this->add($name, SchemaPropertyDescriptor::TYPE_VARCHAR . "($size)");
     }
@@ -96,7 +96,7 @@ class SchemaBuilder
     /// Add a text field to the schema
     /// @param name - The name of the field
     /// @return - The Schema Builder
-    public function text(string $name) : SchemaBuilder
+    public function text(string $name) : SchemaPropertyDescriptor
     {
         return $this->add($name, SchemaPropertyDescriptor::TYPE_TEXT);
     }
@@ -104,7 +104,7 @@ class SchemaBuilder
     /// Add a date field to the schema
     /// @param name - The name of the field
     /// @return - The Schema Builder
-    public function date(string $name) : SchemaBuilder
+    public function date(string $name) : SchemaPropertyDescriptor
     {
         return $this->add($name, SchemaPropertyDescriptor::TYPE_DATE);
     }
@@ -112,7 +112,7 @@ class SchemaBuilder
     /// Add a time field to the schema
     /// @param name - The name of the field
     /// @return - The Schema Builder
-    public function time(string $name) : SchemaBuilder
+    public function time(string $name) : SchemaPropertyDescriptor
     {
         return $this->add($name, SchemaPropertyDescriptor::TYPE_TIME);
     }
@@ -120,16 +120,17 @@ class SchemaBuilder
     /// Add a datetime field to the schema
     /// @param name - The name of the field
     /// @return - The Schema Builder
-    public function datetime(string $name) : SchemaBuilder
+    public function datetime(string $name) : SchemaPropertyDescriptor
     {
         return $this->add($name, SchemaPropertyDescriptor::TYPE_DATETIME);
     }
 
     /// Add a timestamps field to the schema
     /// @return - The Schema Builder
-    public function timestamps() : SchemaBuilder
+    public function timestamps() : void
     {
-        return $this->datetime('created_at')->datetime('updated_at');
+        $this->datetime('created_at');
+        $this->datetime('updated_at');
     }
 
     // make a composite primary key

@@ -11,13 +11,13 @@ abstract class Model
     /// List of properties
     private array $m_properties;
     /// List of properties that define the primary key
-    private array $m_identifiers;
+    private array $m_identifiers = [];
     /// Specify if this model has been retrieved by the DB
     private bool $m_isFromDB = false;
 
     /// All the schemad are cached
     /// used for the properties validation
-    private static array $s_schemas;
+    private static array $s_schemas = [];
 
     /// constructor
     /// @param data - The data of the model
@@ -60,7 +60,7 @@ abstract class Model
     }
 
     // produce lo schema del modello
-    public static function schema()
+    public static function schema(): SchemaBuilder 
     {
         $classname = get_called_class();
         if (!array_key_exists($classname, self::$s_schemas))
@@ -97,7 +97,7 @@ abstract class Model
     public function __set(string $name, $value) : void
     {
         if (array_key_exists($name, $this->m_properties))
-            $this->properties[$name] = $value;
+            $this->m_properties[$name] = $value;
     }
 
     /// Check if a property exists
@@ -180,12 +180,14 @@ abstract class Model
         {
             // insert
             $query = new Query();
-            $query->insert(static::table(), $this->toArray());
-            if ($query->execute())
+            $data = $this->toArray();
+            $query->insert(static::table(), $data);
+            $result = $query->execute();
+            if ($result)
             {
                 $this->m_isFromDB = true;
             }
-            return $query->success();
+            return $result;
         }
     }
 
